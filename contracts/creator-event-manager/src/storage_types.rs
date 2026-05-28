@@ -147,6 +147,14 @@ pub enum DataKey {
     // ── Verification keys (#790–#793) ────────────────────────────────────────
     /// Verification status for an address — true = verified, false = not verified.
     VerifiedAddresses(Address),
+
+    // ── Event invite code index (#795) ───────────────────────────────────────
+    /// Maps an 8-character invite code Symbol → event_id (u64).
+    InviteCode(Symbol),
+
+    // ── Canonical XLM token key (#794) ───────────────────────────────────────
+    /// Current XLM token contract address — set during initialize.
+    CurrentXLMToken,
 }
 
 // ---------------------------------------------------------------------------

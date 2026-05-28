@@ -4,11 +4,15 @@ pub mod admin;
 pub mod storage;
 pub mod storage_types;
 pub mod verification;
+mod event;
+mod invite;
 mod token;
 
-use soroban_sdk::{contract, contractimpl, Address, Env, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec};
 
 use admin::AdminError;
+use event::EventError;
+use storage_types::Event;
 use verification::VerificationError;
 
 // ---------------------------------------------------------------------------
@@ -222,5 +226,71 @@ impl CreatorEventManagerContract {
     /// any address that has never been verified or does not exist in storage.
     pub fn is_verified(env: Env, address: Address) -> bool {
         verification::is_verified(&env, address)
+    }
+
+    // =========================================================================
+    // Event management (#794–#797)
+    // =========================================================================
+
+    /// Create a new prediction event.
+    ///
+    /// Charges the creation fee in XLM, generates a unique 8-character invite
+    /// code, persists the event, and emits an `EventCreated` event.
+    ///
+    /// Returns `(event_id, invite_code)`.
+    ///
+    /// # Panics
+    /// * `"contract_paused"` — contract is paused.
+    /// * `"invalid_title"` — title is empty or > 200 chars.
+    /// * `"invalid_description"` — description is empty or > 1000 chars.
+    /// * `"invalid_max_participants"` — max_participants is 0.
+    /// * `"insufficient_fee"` — creator's XLM balance is below the creation fee.
+    /// * `"code_generation_failed"` — could not generate a unique invite code.
+    pub fn create_event(
+        env: Env,
+        creator: Address,
+        title: String,
+        description: String,
+        max_participants: u32,
+    ) -> (u64, Symbol) {
+        match event::create_event(&env, creator, title, description, max_participants) {
+            Ok(result) => result,
+            Err(EventError::Paused) => panic!("contract_paused"),
+            Err(EventError::InvalidTitle) => panic!("invalid_title"),
+            Err(EventError::InvalidDescription) => panic!("invalid_description"),
+            Err(EventError::InvalidMaxParticipants) => panic!("invalid_max_participants"),
+            Err(EventError::InsufficientFee) => panic!("insufficient_fee"),
+            Err(EventError::TransferFailed) => panic!("transfer_failed"),
+            Err(EventError::CodeGenerationFailed) => panic!("code_generation_failed"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Retrieve an event by ID.
+    ///
+    /// Extends the entry TTL on each read.
+    ///
+    /// # Panics
+    /// * `"event_not_found"` — no event exists with the given ID.
+    pub fn get_event(env: Env, event_id: u64) -> Event {
+        match event::get_event(&env, event_id) {
+            Ok(e) => e,
+            Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Look up an event by its invite code.
+    ///
+    /// # Panics
+    /// * `"invalid_invite_code"` — no event is associated with this code.
+    /// * `"event_not_found"` — the code resolves to an event that no longer exists.
+    pub fn get_event_by_code(env: Env, invite_code: Symbol) -> Event {
+        match event::get_event_by_code(&env, invite_code) {
+            Ok(e) => e,
+            Err(EventError::InvalidInviteCode) => panic!("invalid_invite_code"),
+            Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
     }
 }
