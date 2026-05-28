@@ -144,6 +144,9 @@ pub fn initialize(
         TTL_LEDGERS,
         TTL_LEDGERS,
     );
+    // Canonical XLM token retrieval key
+    storage.set(&DataKey::CurrentXLMToken, &xlm_token);
+    storage.extend_ttl(&DataKey::CurrentXLMToken, TTL_LEDGERS, TTL_LEDGERS);
 
     // Creation fee — stored under a canonical key with value 0 as placeholder
     // (the actual fee is the *value*, not the key discriminant)
@@ -399,6 +402,13 @@ pub fn get_ai_agent(env: &Env) -> Option<Address> {
     env.storage()
         .persistent()
         .get::<DataKey, Address>(&DataKey::CurrentAIAgent)
+}
+
+/// Returns the current XLM token contract address, or `None` if not yet initialised.
+pub fn get_xlm_token(env: &Env) -> Option<Address> {
+    env.storage()
+        .persistent()
+        .get::<DataKey, Address>(&DataKey::CurrentXLMToken)
 }
 
 // ---------------------------------------------------------------------------
