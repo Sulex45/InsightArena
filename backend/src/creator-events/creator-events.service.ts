@@ -1,15 +1,27 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Brackets, Repository } from 'typeorm';
 import {
   ContractService,
   ContractEvent,
   ContractConfig,
   ContractParticipant,
 } from '../contract/contract.service';
+import { CreatorEvent } from '../matches/entities/creator-event.entity';
 import {
   ListParticipantsQueryDto,
   ParticipantSortBy,
   SortOrder,
 } from './dto/list-participants-query.dto';
+import {
+  CreatorEventSearchStatus,
+  SearchEventsQueryDto,
+} from './dto/search-events-query.dto';
+import {
+  SearchEventResultDto,
+  SearchEventsResponseDto,
+  SearchHighlightsDto,
+} from './dto/search-events-response.dto';
 
 export interface EnrichedEvent extends ContractEvent {
   matchCount: number;
@@ -39,7 +51,78 @@ export interface PaginatedParticipants {
 export class CreatorEventsService {
   private readonly logger = new Logger(CreatorEventsService.name);
 
-  constructor(private readonly contractService: ContractService) {}
+  constructor(
+    private readonly contractService: ContractService,
+    @InjectRepository(CreatorEvent)
+    private readonly creatorEventRepository: Repository<CreatorEvent>,
+  ) {}
+
+  async searchEvents(
+    query: SearchEventsQueryDto,
+  ): Promise<SearchEventsResponseDto> {
+    const searchTerm = query.q?.trim() ?? '';
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+
+    if (!searchTerm) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        query: searchTerm,
+      };
+    }
+
+    const searchVector = this.getSearchVectorSql('creatorEvent');
+    const searchQuery = `websearch_to_tsquery('english', :searchTerm)`;
+
+    const searchQueryBuilder = this.creatorEventRepository
+      .createQueryBuilder('creatorEvent')
+      .addSelect(`ts_rank_cd((${searchVector}), ${searchQuery})`, 'search_rank')
+      .where(
+        new Brackets((qb) => {
+          qb.where(`(${searchVector}) @@ ${searchQuery}`).orWhere(
+            "creatorEvent.creator_address ILIKE :creatorAddressSearch ESCAPE '\\'",
+          );
+        }),
+      )
+      .setParameter('searchTerm', searchTerm)
+      .setParameter(
+        'creatorAddressSearch',
+        `%${this.escapeLikePattern(searchTerm)}%`,
+      );
+
+    this.applyStatusFilter(searchQueryBuilder, query.status);
+
+    if (query.creator?.trim()) {
+      searchQueryBuilder.andWhere(
+        'LOWER(creatorEvent.creator_address) = LOWER(:creator)',
+        { creator: query.creator.trim() },
+      );
+    }
+
+    const total = await searchQueryBuilder.clone().getCount();
+    const { entities, raw } = await searchQueryBuilder
+      .orderBy('search_rank', 'DESC')
+      .addOrderBy('creatorEvent.participant_count', 'DESC')
+      .addOrderBy('creatorEvent.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getRawAndEntities<{ search_rank?: string | number }>();
+
+    return {
+      data: entities.map((event, index) =>
+        this.toSearchResult(event, raw[index]?.search_rank, searchTerm),
+      ),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      query: searchTerm,
+    };
+  }
 
   async getEventById(id: string): Promise<EnrichedEvent> {
     const event = await this.contractService.getEvent(id);
@@ -156,5 +239,122 @@ export class CreatorEventsService {
           return 0;
       }
     });
+  }
+
+  private getSearchVectorSql(alias: string): string {
+    return `
+      setweight(to_tsvector('english', coalesce(${alias}.title, '')), 'A') ||
+      setweight(to_tsvector('english', coalesce(${alias}.description, '')), 'B') ||
+      setweight(to_tsvector('simple', coalesce(${alias}.creator_address, '')), 'C')
+    `;
+  }
+
+  private applyStatusFilter(
+    queryBuilder: ReturnType<Repository<CreatorEvent>['createQueryBuilder']>,
+    status: CreatorEventSearchStatus = CreatorEventSearchStatus.All,
+  ): void {
+    switch (status) {
+      case CreatorEventSearchStatus.Active:
+        queryBuilder.andWhere('creatorEvent.is_active = :isActive', {
+          isActive: true,
+        });
+        queryBuilder.andWhere('creatorEvent.is_cancelled = :isCancelled', {
+          isCancelled: false,
+        });
+        break;
+      case CreatorEventSearchStatus.Cancelled:
+        queryBuilder.andWhere('creatorEvent.is_cancelled = :isCancelled', {
+          isCancelled: true,
+        });
+        break;
+      case CreatorEventSearchStatus.Inactive:
+        queryBuilder.andWhere('creatorEvent.is_active = :isActive', {
+          isActive: false,
+        });
+        break;
+      case CreatorEventSearchStatus.All:
+      default:
+        break;
+    }
+  }
+
+  private toSearchResult(
+    event: CreatorEvent,
+    rank: string | number | undefined,
+    searchTerm: string,
+  ): SearchEventResultDto {
+    return {
+      id: event.id,
+      on_chain_event_id: event.on_chain_event_id,
+      title: event.title,
+      description: event.description,
+      creator_address: event.creator_address,
+      is_active: event.is_active,
+      is_cancelled: event.is_cancelled,
+      participant_count: event.participant_count,
+      match_count: event.match_count,
+      rank: Number(rank ?? 0),
+      highlights: this.buildHighlights(event, searchTerm),
+    };
+  }
+
+  private buildHighlights(
+    event: CreatorEvent,
+    searchTerm: string,
+  ): SearchHighlightsDto {
+    return {
+      title: this.highlightMatches(event.title, searchTerm),
+      description: this.highlightMatches(event.description, searchTerm),
+      creator_address: this.highlightMatches(event.creator_address, searchTerm),
+    };
+  }
+
+  private highlightMatches(value: string, searchTerm: string): string {
+    const escapedValue = this.escapeHtml(value);
+    const terms = this.getHighlightTerms(searchTerm);
+
+    if (terms.length === 0) {
+      return escapedValue;
+    }
+
+    const pattern = terms.map((term) => this.escapeRegExp(term)).join('|');
+    return escapedValue.replace(
+      new RegExp(`(${pattern})`, 'gi'),
+      '<mark>$1</mark>',
+    );
+  }
+
+  private getHighlightTerms(searchTerm: string): string[] {
+    return Array.from(
+      new Set(
+        searchTerm
+          .toLowerCase()
+          .split(/\s+/)
+          .map((term) => term.replace(/["']/g, '').trim())
+          .filter(Boolean),
+      ),
+    );
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char) => {
+      const replacements: Record<string, string> = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      };
+
+      return replacements[char];
+    });
+  }
+
+  private escapeLikePattern(value: string): string {
+    return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 }

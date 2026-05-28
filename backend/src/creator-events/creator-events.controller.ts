@@ -5,11 +5,13 @@ import {
   Query,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -19,11 +21,47 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreatorEventsService } from './creator-events.service';
 import { ListParticipantsQueryDto } from './dto/list-participants-query.dto';
+import { SearchEventsQueryDto } from './dto/search-events-query.dto';
+import { SearchEventsResponseDto } from './dto/search-events-response.dto';
 
 @ApiTags('creator-events')
 @Controller('creator-events')
 export class CreatorEventsController {
   constructor(private readonly creatorEventsService: CreatorEventsService) {}
+
+  /**
+   * GET /api/creator-events/search
+   * #757 - Search creator events with relevance ranking and highlights.
+   */
+  @Get('search')
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(120) // 2 minutes
+  @ApiOperation({ summary: 'Search creator events' })
+  @ApiQuery({
+    name: 'q',
+    required: true,
+    description:
+      'Search query matched against event title, description, and creator address',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['active', 'cancelled', 'inactive', 'all'],
+  })
+  @ApiQuery({ name: 'creator', required: false })
+  @ApiResponse({
+    status: 200,
+    description: 'Ranked creator event search results',
+    type: SearchEventsResponseDto,
+  })
+  searchEvents(
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: SearchEventsQueryDto,
+  ) {
+    return this.creatorEventsService.searchEvents(query);
+  }
 
   /**
    * GET /api/creator-events/:id
