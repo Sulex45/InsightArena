@@ -137,6 +137,15 @@ Get match statistics: `(has_started, result_submitted, time_until_start, time_si
 #### `get_match_count()` / `validate_match(match_id)`
 Get total match count and validate match data consistency.
 
+#### `join_event(user, invite_code)`
+Join an event using its invite code before submitting predictions.
+
+#### `submit_prediction(predictor, match_id, predicted_outcome)`
+Submit a TEAM_A, TEAM_B, or DRAW prediction for a match.
+
+#### `get_prediction(prediction_id)`
+Fetch a stored prediction by ID for display or verification.
+
 #### Legacy Functions (Backward Compatibility)
 #### `create_event()` (Legacy)
 Create a new prediction event with the following parameters:

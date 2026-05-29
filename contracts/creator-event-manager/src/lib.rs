@@ -4,6 +4,8 @@ pub mod admin;
 pub mod storage;
 pub mod storage_types;
 pub mod verification;
+pub mod prediction;
+pub mod r#match;
 mod event;
 mod invite;
 mod token;
@@ -12,7 +14,7 @@ use soroban_sdk::{contract, contractimpl, Address, Env, String, Symbol, Vec};
 
 use admin::AdminError;
 use event::EventError;
-use storage_types::Event;
+use storage_types::{Event, Prediction};
 use verification::VerificationError;
 
 // ---------------------------------------------------------------------------
@@ -290,6 +292,62 @@ impl CreatorEventManagerContract {
             Ok(e) => e,
             Err(EventError::InvalidInviteCode) => panic!("invalid_invite_code"),
             Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Return the number of matches currently stored for an event.
+    ///
+    /// This is a lightweight read that loads only the event record, not the
+    /// full match list.
+    pub fn get_match_count(env: Env, event_id: u64) -> u32 {
+        match r#match::get_match_count(&env, event_id) {
+            Ok(count) => count,
+            Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Join an event using its invite code.
+    pub fn join_event(env: Env, user: Address, invite_code: Symbol) {
+        match prediction::join_event(&env, user, invite_code) {
+            Ok(()) => {}
+            Err(prediction::PredictionError::Paused) => panic!("paused"),
+            Err(prediction::PredictionError::InvalidInviteCode) => panic!("invalid_invite_code"),
+            Err(prediction::PredictionError::EventNotFound) => panic!("event_not_found"),
+            Err(prediction::PredictionError::EventCancelled) => panic!("event_cancelled"),
+            Err(prediction::PredictionError::AlreadyJoined) => panic!("already_joined"),
+            Err(prediction::PredictionError::EventFull) => panic!("event_full"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Submit a prediction for a match in an event.
+    pub fn submit_prediction(
+        env: Env,
+        predictor: Address,
+        match_id: u64,
+        predicted_outcome: Symbol,
+    ) -> u64 {
+        match prediction::submit_prediction(&env, predictor, match_id, predicted_outcome) {
+            Ok(prediction_id) => prediction_id,
+            Err(prediction::PredictionError::Paused) => panic!("paused"),
+            Err(prediction::PredictionError::MatchNotFound) => panic!("match_not_found"),
+            Err(prediction::PredictionError::EventNotFound) => panic!("event_not_found"),
+            Err(prediction::PredictionError::EventCancelled) => panic!("event_cancelled"),
+            Err(prediction::PredictionError::NotJoined) => panic!("not_joined"),
+            Err(prediction::PredictionError::MatchStarted) => panic!("match_started"),
+            Err(prediction::PredictionError::InvalidOutcome) => panic!("invalid_outcome"),
+            Err(prediction::PredictionError::AlreadyPredicted) => panic!("already_predicted"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Return a stored prediction by ID.
+    pub fn get_prediction(env: Env, prediction_id: u64) -> Prediction {
+        match prediction::get_prediction(&env, prediction_id) {
+            Ok(prediction) => prediction,
+            Err(prediction::PredictionError::PredictionNotFound) => panic!("prediction_not_found"),
             Err(_) => panic!("unexpected_error"),
         }
     }
