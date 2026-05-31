@@ -18,6 +18,7 @@ import {
 } from '../matches/entities/match-prediction.entity';
 import { User } from '../users/entities/user.entity';
 import { NotificationGeneratorService } from '../notifications/notification-generator.service';
+import { BroadcasterService } from '../websocket/broadcaster.service';
 
 const CHECKPOINT_LEDGER_KEY = 'indexer:last_processed_ledger';
 const CHECKPOINT_LEDGER_KEY_LATEST = 'indexer:latest_contract_ledger';
@@ -60,6 +61,7 @@ export class IndexerService implements OnModuleInit {
     private readonly userRepository: Repository<User>,
 
     private readonly notificationGeneratorService: NotificationGeneratorService,
+    private readonly broadcasterService: BroadcasterService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -550,6 +552,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleEventCreated(data);
+    this.broadcasterService.broadcastEventCreated(data);
   }
 
   private async handleMatchAdded(data: Record<string, unknown>): Promise<void> {
@@ -597,6 +600,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleMatchAdded(data);
+    this.broadcasterService.broadcastMatchAdded(data);
   }
 
   private async handleUserJoinedEvent(
@@ -624,6 +628,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleUserJoinedEvent(data);
+    this.broadcasterService.broadcastUserJoined(data);
   }
 
   private async handlePredictionSubmitted(
@@ -693,6 +698,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handlePredictionSubmitted(data);
+    this.broadcasterService.broadcastPredictionSubmitted(data);
   }
 
   private async handleMatchResultSubmitted(
@@ -747,6 +753,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleMatchResultSubmitted(data);
+    this.broadcasterService.broadcastMatchResolved(data);
   }
 
   private async gradePredictions(
@@ -776,6 +783,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleWinnersVerified(data);
+    this.broadcasterService.broadcastWinnersVerified(data);
   }
 
   private async handleEventCancelled(
@@ -804,6 +812,7 @@ export class IndexerService implements OnModuleInit {
 
     // Trigger notification
     await this.notificationGeneratorService.handleEventCancelled(data);
+    this.broadcasterService.broadcastEventCancelled(data);
   }
 
   private async handleFeeUpdated(data: Record<string, unknown>): Promise<void> {

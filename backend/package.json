@@ -41,11 +41,13 @@
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/platform-socket.io": "^11.1.24",
     "@nestjs/schedule": "^6.1.1",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^11.0.0",
+    "@nestjs/websockets": "^11.1.24",
     "@stellar/stellar-sdk": "^14.6.1",
     "bcrypt": "^6.0.0",
     "cache-manager": "^7.2.8",
@@ -58,6 +60,7 @@
     "pino-http": "^11.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
     "typeorm": "^0.3.28"
   },
@@ -90,6 +93,5 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
-
   "packageManager": "pnpm@9.15.5+sha512.845196026aab1cc3f098a0474b64dfbab2afe7a1b4e91dd86895d8e4aa32a7a6d03049e2d0ad770bbe4de023a7122fb68c1a1d6e0d033c7076085f9d5d4800d4"
 }
