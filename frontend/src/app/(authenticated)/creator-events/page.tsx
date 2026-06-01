@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, ChevronDown } from "lucide-react";
 import EventCard, { CreatorEventStatus } from "@/component/creator-events/EventCard";
 import { Button } from "@/component/ui/button";
@@ -88,6 +89,7 @@ const sortOptions = [
 ] as const;
 
 export default function CreatorEventsPage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<CreatorEventStatus | "All">("All");
   const [sortKey, setSortKey] = useState<typeof sortOptions[number]["value"]>("newest");
@@ -202,9 +204,7 @@ export default function CreatorEventsPage() {
                   status={event.status}
                   endsAt={event.endsAt}
                   joined={event.joined}
-                  onViewDetails={() => {
-                    /* Navigation placeholder for future detail page */
-                  }}
+                  onViewDetails={() => router.push(`/creator-events/${event.id}`)}
                 />
               ))}
             </div>
