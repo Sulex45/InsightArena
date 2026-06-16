@@ -20,8 +20,7 @@ fn setup() -> (
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -59,7 +58,16 @@ fn create_event_with_match(
     match_time_offset: u64,
 ) -> (u64, Symbol, u64) {
     fund(env, xlm_token, creator, FEE);
-    let (event_id, invite_code) = client.create_event(creator, &title(env), &desc(env), &10u32);
+    let start_time = env.ledger().timestamp() + 3600;
+    let end_time = env.ledger().timestamp() + 7200;
+    let (event_id, invite_code) = client.create_event(
+        creator,
+        &title(env),
+        &desc(env),
+        &10u32,
+        &start_time,
+        &end_time,
+    );
 
     let match_id = env.as_contract(contract_id, || {
         let match_id = storage::next_match_id(env);
@@ -191,7 +199,16 @@ fn test_verify_event_winners_partial_scores_excluded() {
     let user2 = Address::generate(&env);
 
     fund(&env, &xlm_token, &creator, FEE);
-    let (event_id, invite_code) = client.create_event(&creator, &title(&env), &desc(&env), &10u32);
+    let start_time = env.ledger().timestamp() + 3600;
+    let end_time = env.ledger().timestamp() + 7200;
+    let (event_id, invite_code) = client.create_event(
+        &creator,
+        &title(&env),
+        &desc(&env),
+        &10u32,
+        &start_time,
+        &end_time,
+    );
 
     // Create two matches
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {
@@ -453,7 +470,16 @@ fn test_get_user_score_calculation_accurate() {
     let user = Address::generate(&env);
 
     fund(&env, &xlm_token, &creator, FEE);
-    let (event_id, invite_code) = client.create_event(&creator, &title(&env), &desc(&env), &10u32);
+    let start_time = env.ledger().timestamp() + 3600;
+    let end_time = env.ledger().timestamp() + 7200;
+    let (event_id, invite_code) = client.create_event(
+        &creator,
+        &title(&env),
+        &desc(&env),
+        &10u32,
+        &start_time,
+        &end_time,
+    );
 
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {
         let m1 = storage::next_match_id(&env);

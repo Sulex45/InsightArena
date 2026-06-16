@@ -613,7 +613,7 @@ pub fn resolve_market(
             .persistent()
             .get::<_, ConditionalMarket>(&DataKey::ConditionalMarket(child_id))
         {
-            if &conditional.required_outcome == &resolved_outcome {
+            if conditional.required_outcome == resolved_outcome {
                 let _ = activate_conditional_market(&env, child_id);
             } else {
                 let _ = deactivate_conditional_market(&env, child_id);
@@ -794,18 +794,13 @@ pub fn get_conditional_chain(
 pub fn calculate_conditional_depth(env: &Env, market_id: u64) -> u32 {
     let mut depth = 0u32;
     let mut cursor = market_id;
-    loop {
-        match env
-            .storage()
-            .persistent()
-            .get::<_, u64>(&DataKey::ConditionalParent(cursor))
-        {
-            Some(parent_id) => {
-                depth = depth.saturating_add(1);
-                cursor = parent_id;
-            }
-            None => break,
-        }
+    while let Some(parent_id) = env
+        .storage()
+        .persistent()
+        .get::<_, u64>(&DataKey::ConditionalParent(cursor))
+    {
+        depth = depth.saturating_add(1);
+        cursor = parent_id;
     }
     depth
 }
@@ -826,7 +821,10 @@ fn validate_conditional_params(
         return Err(InsightArenaError::MarketExpired);
     }
 
-    if !parent_market.outcome_options.contains(required_outcome.clone()) {
+    if !parent_market
+        .outcome_options
+        .contains(required_outcome.clone())
+    {
         return Err(InsightArenaError::InvalidOutcome);
     }
 
@@ -868,20 +866,15 @@ fn validate_no_circular_dependency(
 }
 
 fn emit_conditional_deactivated(env: &Env, market_id: u64) {
-    env.events().publish(
-        (symbol_short!("cond"), symbol_short!("deactiv")),
-        market_id,
-    );
+    env.events()
+        .publish((symbol_short!("cond"), symbol_short!("deactiv")), market_id);
 }
 
 /// Deactivate a conditional market whose parent was cancelled or resolved to a
 /// non-matching outcome. Sets `is_activated = false`, marks the underlying
 /// `Market` as `is_cancelled = true`, refunds any stakes already placed, and
 /// emits a deactivation event.
-pub fn deactivate_conditional_market(
-    env: &Env,
-    market_id: u64,
-) -> Result<(), InsightArenaError> {
+pub fn deactivate_conditional_market(env: &Env, market_id: u64) -> Result<(), InsightArenaError> {
     // Load and update the ConditionalMarket record.
     let mut conditional: ConditionalMarket = env
         .storage()
@@ -913,9 +906,7 @@ pub fn deactivate_conditional_market(
 
         for predictor in predictors.iter() {
             let key = DataKey::Prediction(market_id, predictor.clone());
-            if let Some(prediction) =
-                env.storage().persistent().get::<DataKey, Prediction>(&key)
-            {
+            if let Some(prediction) = env.storage().persistent().get::<DataKey, Prediction>(&key) {
                 escrow::refund(env, &predictor, prediction.stake_amount)?;
             }
         }
@@ -946,29 +937,6 @@ fn activate_conditional_market(env: &Env, market_id: u64) -> Result<(), InsightA
     );
 
     Ok(())
-}
-
-fn check_conditional_activation(env: &Env, parent_market_id: u64, resolved_outcome: &Symbol) {
-    let child_ids: Vec<u64> = env
-        .storage()
-        .persistent()
-        .get(&DataKey::ConditionalChildren(parent_market_id))
-        .unwrap_or_else(|| Vec::new(env));
-
-    for child_id in child_ids.iter() {
-        if let Some(conditional) = env
-            .storage()
-            .persistent()
-            .get::<_, ConditionalMarket>(&DataKey::ConditionalMarket(child_id))
-        {
-            if &conditional.required_outcome == resolved_outcome {
-                let _ = activate_conditional_market(env, child_id);
-            } else {
-                // Parent resolved to a different outcome — deactivate this child.
-                let _ = deactivate_conditional_market(env, child_id);
-            }
-        }
-    }
 }
 
 // ── Analytics (merged from analytics.rs) ─────────────────────────────────────

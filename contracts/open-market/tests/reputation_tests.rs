@@ -573,7 +573,7 @@ fn test_reputation_decreases_with_disputes() {
     TokenClient::new(&env, &xlm_token).approve(&disputer, &client.address, &bond1, &9999);
     client.raise_dispute(&disputer, &market_id_1, &bond1);
     let stats_one_dispute = client.get_creator_stats(&creator);
-    
+
     // Fund disputer for second dispute
     let bond2 = 1_000_000_i128;
     StellarAssetClient::new(&env, &xlm_token).mint(&disputer, &bond2);
@@ -607,9 +607,10 @@ fn test_reputation_capped_at_zero_with_many_disputes() {
     // Create many markets and raise disputes to exceed penalty cap
     for i in 0..15 {
         let market_id = client.create_market(&creator, &default_params(&env));
-        env.ledger().set_timestamp(env.ledger().timestamp() + 2000 + i * 100);
+        env.ledger()
+            .set_timestamp(env.ledger().timestamp() + 2000 + i * 100);
         client.resolve_market(&oracle, &market_id, &symbol_short!("yes"));
-        
+
         // Fund disputer for each dispute
         let bond = 1_000_000_i128;
         StellarAssetClient::new(&env, &xlm_token).mint(&disputer, &bond);
@@ -618,14 +619,13 @@ fn test_reputation_capped_at_zero_with_many_disputes() {
     }
 
     let final_stats = client.get_creator_stats(&creator);
-    
+
     // With 15 disputes: penalty = min(15 * 50, 200) = 200
     // With 16 markets (1 initial + 15): resolution_ratio = 16/16 * 600 = 600
     // Final score = 600 + 0 - 200 = 400
-    // But if we had even more disputes, it should never go below 0
-    assert!(final_stats.reputation_score >= 0);
+    assert_eq!(final_stats.reputation_score, 400);
     assert_eq!(final_stats.dispute_count, 15);
-    
+
     // Test the formula directly with extreme dispute count
     let extreme_stats = CreatorStats {
         markets_created: 1,
@@ -634,7 +634,7 @@ fn test_reputation_capped_at_zero_with_many_disputes() {
         dispute_count: 100, // Extreme dispute count
         reputation_score: 0,
     };
-    
+
     let extreme_reputation = calculate_creator_reputation(&extreme_stats);
     assert_eq!(extreme_reputation, 0); // Should be capped at 0, not underflow
 }

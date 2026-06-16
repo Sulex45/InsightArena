@@ -1791,7 +1791,10 @@ fn test_conditional_market_deactivates_on_parent_cancel() {
     assert!(!conditional.is_activated, "child should be deactivated");
 
     let child_market = read_market(&env, &client, child_id);
-    assert!(child_market.is_cancelled, "child market should be cancelled");
+    assert!(
+        child_market.is_cancelled,
+        "child market should be cancelled"
+    );
 }
 
 #[test]
@@ -1830,7 +1833,10 @@ fn test_conditional_market_deactivates_on_wrong_outcome() {
     let no_cond = read_conditional(&env, &client, no_child_id);
     assert!(!no_cond.is_activated, "no child should be deactivated");
     let no_market = read_market(&env, &client, no_child_id);
-    assert!(no_market.is_cancelled, "no child market should be cancelled");
+    assert!(
+        no_market.is_cancelled,
+        "no child market should be cancelled"
+    );
 }
 
 #[test]
@@ -2059,7 +2065,10 @@ fn test_cascading_activation_through_full_chain_on_matching_outcomes() {
     client.resolve_market(&oracle, &root, &symbol_short!("yes"));
 
     assert!(read_conditional(&env, &client, c1).is_activated);
-    assert_eq!(read_conditional(&env, &client, c1).activation_time, Some(25_000));
+    assert_eq!(
+        read_conditional(&env, &client, c1).activation_time,
+        Some(25_000)
+    );
     assert!(!read_conditional(&env, &client, c2).is_activated);
     assert!(!read_conditional(&env, &client, c3).is_activated);
     assert_eq!(read_conditional(&env, &client, c2).activation_time, None);
@@ -2070,7 +2079,10 @@ fn test_cascading_activation_through_full_chain_on_matching_outcomes() {
     client.resolve_market(&oracle, &c1, &symbol_short!("yes"));
 
     assert!(read_conditional(&env, &client, c2).is_activated);
-    assert_eq!(read_conditional(&env, &client, c2).activation_time, Some(26_000));
+    assert_eq!(
+        read_conditional(&env, &client, c2).activation_time,
+        Some(26_000)
+    );
     assert!(!read_conditional(&env, &client, c3).is_activated);
     assert_eq!(read_conditional(&env, &client, c3).activation_time, None);
 
@@ -2079,7 +2091,10 @@ fn test_cascading_activation_through_full_chain_on_matching_outcomes() {
     client.resolve_market(&oracle, &c2, &symbol_short!("yes"));
 
     assert!(read_conditional(&env, &client, c3).is_activated);
-    assert_eq!(read_conditional(&env, &client, c3).activation_time, Some(27_000));
+    assert_eq!(
+        read_conditional(&env, &client, c3).activation_time,
+        Some(27_000)
+    );
 
     // Verify parent markets are resolved
     assert!(read_market(&env, &client, root).is_resolved);

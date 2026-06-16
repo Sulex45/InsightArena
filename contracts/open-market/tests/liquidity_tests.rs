@@ -672,16 +672,15 @@ fn test_get_swap_history_empty_before_any_swaps() {
 
 // ── collect_lp_fees Tests (Issue #561) ───────────────────────────────────────
 
-fn deploy_with_token(
-    env: &Env,
-) -> (InsightArenaContractClient<'_>, Address, Address, Address) {
+fn deploy_with_token(env: &Env) -> (InsightArenaContractClient<'_>, Address, Address, Address) {
     let id = env.register(InsightArenaContract, ());
     let client = InsightArenaContractClient::new(env, &id);
     let admin = Address::generate(env);
     let oracle = Address::generate(env);
     let xlm_token = {
         let token_admin = Address::generate(env);
-        env.register_stellar_asset_contract_v2(token_admin).address()
+        env.register_stellar_asset_contract_v2(token_admin)
+            .address()
     };
     env.mock_all_auths();
     client.initialize(&admin, &oracle, &200_u32, &xlm_token);
@@ -1295,7 +1294,6 @@ fn test_swap_outcome_with_multiple_sequential_swaps() {
     let history = client.get_swap_history(&market_id);
     assert!(history.len() >= 2);
 }
-
 
 #[test]
 fn test_remove_liquidity_with_accumulated_fees() {

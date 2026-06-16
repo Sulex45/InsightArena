@@ -12,8 +12,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env};
 /// Deploy a fresh contract and return (env, client, contract_id).
 fn setup() -> (Env, CreatorEventManagerContractClient<'static>, Address) {
     let env = Env::default();
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     // SAFETY: the Env outlives the test function; the 'static bound is
     // satisfied because we leak nothing outside the test.

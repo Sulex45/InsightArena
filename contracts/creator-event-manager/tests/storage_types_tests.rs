@@ -47,6 +47,8 @@ fn make_event(env: &Env, event_id: u64) -> Event {
         String::from_str(env, "A test prediction event"),
         1_000_000i128,
         1_640_995_200u64,
+        1_640_998_800u64,
+        1_641_081_600u64,
         Symbol::new(env, "ABCD1234"),
         100u32,
     )
@@ -71,6 +73,8 @@ fn test_event_creation() {
         description.clone(),
         500_000i128,
         1_640_995_200u64,
+        1_640_998_800u64,
+        1_641_081_600u64,
         invite_code.clone(),
         50u32,
     );
@@ -136,6 +140,8 @@ fn test_event_max_participants() {
         String::from_str(&env, "2 spots"),
         0i128,
         0u64,
+        3_600u64,
+        7_200u64,
         Symbol::new(&env, "CAPCODE1"),
         2u32,
     );
@@ -155,6 +161,8 @@ fn test_event_unlimited_participants() {
         String::from_str(&env, "No cap"),
         0i128,
         0u64,
+        3_600u64,
+        7_200u64,
         Symbol::new(&env, "OPENCODE"),
         0u32, // 0 = unlimited
     );

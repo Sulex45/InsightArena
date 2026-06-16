@@ -1,5 +1,5 @@
 use insightarena_contract::governance::ProposalType;
-use insightarena_contract::storage_types::DataKey;
+
 use insightarena_contract::{InsightArenaContract, InsightArenaContractClient, InsightArenaError};
 use soroban_sdk::testutils::{Address as _, Ledger as _};
 use soroban_sdk::{Address, Env, Symbol, Vec};
@@ -23,7 +23,7 @@ fn deploy(env: &Env) -> (InsightArenaContractClient<'_>, Address) {
     (client, admin)
 }
 
-fn seed_users(env: &Env, client: &InsightArenaContractClient, count: u32) -> Vec<Address> {
+fn seed_users(env: &Env, _client: &InsightArenaContractClient, count: u32) -> Vec<Address> {
     let mut users = Vec::new(env);
     for _ in 0..count {
         let user = Address::generate(env);
@@ -41,11 +41,11 @@ fn pass_proposal(
     let proposer = Address::generate(env);
     let duration = 3600;
     let id = client.create_proposal(&proposer, action, &duration);
-    
+
     for voter in voters.iter() {
         client.vote(&voter, &id, &true);
     }
-    
+
     env.ledger().with_mut(|l| l.timestamp += duration + 1);
     id
 }
@@ -58,7 +58,12 @@ fn test_governance_logic() {
     let (client, _) = deploy(&env);
     let voters = seed_users(&env, &client, 5);
 
-    let id = pass_proposal(&env, &client, &ProposalType::UpdateProtocolFee(500), &voters);
+    let id = pass_proposal(
+        &env,
+        &client,
+        &ProposalType::UpdateProtocolFee(500),
+        &voters,
+    );
 
     let executor = Address::generate(&env);
     client.execute_proposal(&executor, &id);
@@ -96,7 +101,7 @@ fn test_execute_proposal_updates_min_stake() {
     let (client, _) = deploy(&env);
     let voters = seed_users(&env, &client, 5);
 
-    let new_min = 50_000_000_i128; 
+    let new_min = 50_000_000_i128;
     let id = pass_proposal(
         &env,
         &client,

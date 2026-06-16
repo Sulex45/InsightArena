@@ -431,10 +431,9 @@ pub fn create_season(
             .persistent()
             .get::<DataKey, Season>(&DataKey::Season(season_id))
         {
-            if !season.is_finalized {
-                if season.start_time < end_time && start_time < season.end_time {
-                    return Err(InsightArenaError::SeasonOverlap);
-                }
+            if !season.is_finalized && season.start_time < end_time && start_time < season.end_time
+            {
+                return Err(InsightArenaError::SeasonOverlap);
             }
         }
         season_id = season_id.saturating_add(1);

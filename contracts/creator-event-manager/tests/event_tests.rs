@@ -22,8 +22,7 @@ fn setup() -> (
         li.timestamp = 1_700_000_000; // Some reasonable timestamp
     });
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -60,11 +59,7 @@ fn get_future_time(env: &Env, offset_seconds: u64) -> u64 {
 #[allow(dead_code)]
 fn get_past_time(env: &Env, offset_seconds: u64) -> u64 {
     let current = env.ledger().timestamp();
-    if current > offset_seconds {
-        current - offset_seconds
-    } else {
-        0 // If offset is larger than current time, return 0 (far in the past)
-    }
+    current.saturating_sub(offset_seconds)
 }
 
 #[test]

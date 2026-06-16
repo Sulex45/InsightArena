@@ -20,7 +20,7 @@ fn make_event(env: &Env, event_id: u64) -> Event {
         String::from_str(env, "A test prediction event"),
         1_000_000i128,
         1_640_995_200u64,
-        1_640_995_200u64 + 3600, // start_time (created_at)
+        1_640_995_200u64 + 3600,  // start_time (created_at)
         1_640_995_200u64 + 86400, // end_time (24 hours later)
         Symbol::new(env, "ABCD1234"),
         100u32,

@@ -19,8 +19,7 @@ fn setup() -> (
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -49,13 +48,35 @@ fn desc(env: &Env) -> String {
     String::from_str(env, "Predict the matches of the 2026 World Cup.")
 }
 
+fn get_future_time(env: &Env, offset_seconds: u64) -> u64 {
+    env.ledger().timestamp() + offset_seconds
+}
+
+fn create_event_default(
+    client: &CreatorEventManagerContractClient<'static>,
+    env: &Env,
+    creator: &Address,
+    max_participants: u32,
+) -> (u64, soroban_sdk::Symbol) {
+    let start_time = get_future_time(env, 3600);
+    let end_time = get_future_time(env, 7200);
+    client.create_event(
+        creator,
+        &title(env),
+        &desc(env),
+        &max_participants,
+        &start_time,
+        &end_time,
+    )
+}
+
 #[test]
 fn test_get_match_count_returns_zero_for_new_event() {
     let (env, client, _contract_id, _admin, xlm_token) = setup();
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
 
     assert_eq!(client.get_match_count(&event_id), 0);
 }
@@ -66,7 +87,7 @@ fn test_get_match_count_returns_correct_count() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let _match_id = env.as_contract(&contract_id, || {
         let mut event = storage::get_event(&env, event_id).expect("event exists");
@@ -133,7 +154,7 @@ fn test_list_event_matches_returns_all_matches() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let base_time = 1_000_000u64;
     add_match(
@@ -171,7 +192,7 @@ fn test_list_event_matches_empty_for_new_event() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let matches = client.list_event_matches(&event_id);
     assert_eq!(matches.len(), 0);
@@ -183,7 +204,7 @@ fn test_list_event_matches_sorted_by_match_time_ascending() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let base_time = 2_000_000u64;
     // Insert in reverse order to ensure sort is applied.
@@ -263,7 +284,7 @@ fn test_add_match_stores_match_correctly() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
     let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
 
@@ -285,7 +306,7 @@ fn test_add_match_updates_event_match_list() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     let m1 = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
@@ -310,7 +331,7 @@ fn test_add_match_increments_event_match_count() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     assert_eq!(client.get_match_count(&event_id), 0);
@@ -333,7 +354,7 @@ fn test_add_match_increments_global_match_counter() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     // Global counter starts at 1 after initialization
@@ -356,7 +377,7 @@ fn test_add_match_cancelled_event_does_not_affect_existing_match() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
@@ -456,7 +477,7 @@ fn test_get_match_returns_existing_match() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
     let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
 
@@ -481,7 +502,7 @@ fn test_get_match_extends_ttl() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
     let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
 
@@ -502,7 +523,7 @@ fn test_get_match_after_result_submission() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
     let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
 
@@ -531,7 +552,7 @@ fn test_get_match_with_multiple_matches_returns_correct_one() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     let m1 = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
@@ -565,7 +586,7 @@ fn test_list_event_matches_single_match() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
     add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
 
@@ -583,7 +604,7 @@ fn test_list_event_matches_handles_same_time_matches() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
@@ -599,8 +620,8 @@ fn test_list_event_matches_returns_different_events_separately() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE * 2);
 
-    let (event_id_1, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
-    let (event_id_2, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id_1, _) = create_event_default(&client, &env, &creator, 5u32);
+    let (event_id_2, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let match_time = env.ledger().timestamp() + 10_000;
     add_match_full(
@@ -634,7 +655,7 @@ fn test_get_match_count_increments_after_each_add() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     let match_time = env.ledger().timestamp() + 10_000;
 
     for i in 1..=5 {
@@ -657,8 +678,8 @@ fn test_get_match_count_independent_across_events() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE * 3);
 
-    let (event_id_1, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
-    let (event_id_2, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id_1, _) = create_event_default(&client, &env, &creator, 5u32);
+    let (event_id_2, _) = create_event_default(&client, &env, &creator, 5u32);
 
     let match_time = env.ledger().timestamp() + 10_000;
     add_match_full(
@@ -707,7 +728,7 @@ fn test_add_match_team_time_can_be_in_future() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     // Future time (1 year from now)
     let future_time = env.ledger().timestamp() + 31_536_000;
     let match_id = add_match_full(
@@ -731,7 +752,7 @@ fn test_add_match_team_time_can_be_in_past() {
     let creator = Address::generate(&env);
     fund(&env, &xlm_token, &creator, FEE);
 
-    let (event_id, _) = client.create_event(&creator, &title(&env), &desc(&env), &5u32);
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
     // Past time (already started)
     env.ledger().with_mut(|l| l.timestamp = 100_000);
     let past_time = env.ledger().timestamp() - 3600;

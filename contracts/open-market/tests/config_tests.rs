@@ -129,7 +129,5 @@ fn test_config_update_unauthorized() {
 
     client.initialize(&admin, &oracle, &200_u32, &register_token(&env));
 
-    let _ = env.as_contract(&client.address, || {
-        config::set_paused(&env, true)
-    });
+    let _ = env.as_contract(&client.address, || config::set_paused(&env, true));
 }

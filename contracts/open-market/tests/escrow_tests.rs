@@ -722,10 +722,7 @@ fn test_release_payout_partial_amount() {
     env.as_contract(&client.address, || {
         release_payout(&env, &recipient, partial_first).unwrap();
     });
-    assert_eq!(
-        token.balance(&recipient),
-        partial_first
-    );
+    assert_eq!(token.balance(&recipient), partial_first);
 
     let remaining = total_payout - partial_first;
     assert_eq!(token.balance(&client.address), remaining);
@@ -774,8 +771,7 @@ fn test_escrow_balance_tracking_accuracy() {
         lock_stake(&env, &predictor_b, stake_b).unwrap();
     });
 
-    let balance_after_locks =
-        env.as_contract(&client.address, || get_contract_balance(&env));
+    let balance_after_locks = env.as_contract(&client.address, || get_contract_balance(&env));
     assert_eq!(balance_after_locks, stake_a + stake_b);
 
     let payout_first = 10_000_000_i128;
@@ -783,12 +779,8 @@ fn test_escrow_balance_tracking_accuracy() {
         release_payout(&env, &predictor_a, payout_first).unwrap();
     });
 
-    let intermediate_balance =
-        env.as_contract(&client.address, || get_contract_balance(&env));
-    assert_eq!(
-        intermediate_balance,
-        (stake_a + stake_b) - payout_first
-    );
+    let intermediate_balance = env.as_contract(&client.address, || get_contract_balance(&env));
+    assert_eq!(intermediate_balance, (stake_a + stake_b) - payout_first);
 
     let remaining = (stake_a + stake_b) - payout_first;
     env.as_contract(&client.address, || {
@@ -823,8 +815,7 @@ fn test_escrow_refund_on_market_cancellation() {
             .set(&DataKey::PredictorList(market_id), &predictors);
     });
 
-    let initial_balance =
-        env.as_contract(&client.address, || get_contract_balance(&env));
+    let initial_balance = env.as_contract(&client.address, || get_contract_balance(&env));
     assert_eq!(initial_balance, stake);
 
     let mut market: Market = env
@@ -851,10 +842,7 @@ fn test_escrow_refund_on_market_cancellation() {
         refund(&env, &predictor, stake).unwrap();
     });
 
-    assert_eq!(
-        token.balance(&predictor),
-        predictor_balance_before + stake
-    );
+    assert_eq!(token.balance(&predictor), predictor_balance_before + stake);
 
     let final_balance = env.as_contract(&client.address, || get_contract_balance(&env));
     assert_eq!(final_balance, 0);
@@ -899,20 +887,10 @@ fn test_concurrent_escrow_operations() {
         release_payout(&env, &predictor_c, stake_c).unwrap();
     });
 
-    assert_eq!(
-        token.balance(&predictor_a),
-        balance_a_before + stake_a
-    );
-    assert_eq!(
-        token.balance(&predictor_b),
-        balance_b_before + stake_b
-    );
-    assert_eq!(
-        token.balance(&predictor_c),
-        balance_c_before + stake_c
-    );
+    assert_eq!(token.balance(&predictor_a), balance_a_before + stake_a);
+    assert_eq!(token.balance(&predictor_b), balance_b_before + stake_b);
+    assert_eq!(token.balance(&predictor_c), balance_c_before + stake_c);
 
-    let final_contract_balance =
-        env.as_contract(&client.address, || get_contract_balance(&env));
+    let final_contract_balance = env.as_contract(&client.address, || get_contract_balance(&env));
     assert_eq!(final_contract_balance, 0);
 }

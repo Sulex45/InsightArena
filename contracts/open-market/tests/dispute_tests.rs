@@ -7,7 +7,8 @@ use soroban_sdk::{symbol_short, vec, Address, Env, String, Symbol};
 
 fn register_token(env: &Env) -> Address {
     let token_admin = Address::generate(env);
-    env.register_stellar_asset_contract_v2(token_admin).address()
+    env.register_stellar_asset_contract_v2(token_admin)
+        .address()
 }
 
 fn deploy(env: &Env) -> (InsightArenaContractClient<'_>, Address, Address, Address) {
@@ -186,7 +187,10 @@ fn test_get_dispute_fails_when_no_dispute() {
     client.resolve_market(&oracle, &id, &symbol_short!("yes"));
 
     let result = client.try_get_dispute(&id);
-    assert!(matches!(result, Err(Ok(InsightArenaError::DisputeNotFound))));
+    assert!(matches!(
+        result,
+        Err(Ok(InsightArenaError::DisputeNotFound))
+    ));
 }
 
 #[test]
@@ -210,5 +214,8 @@ fn test_get_dispute_fails_after_resolution() {
     client.resolve_dispute(&admin, &id, &false);
 
     let result = client.try_get_dispute(&id);
-    assert!(matches!(result, Err(Ok(InsightArenaError::DisputeNotFound))));
+    assert!(matches!(
+        result,
+        Err(Ok(InsightArenaError::DisputeNotFound))
+    ));
 }

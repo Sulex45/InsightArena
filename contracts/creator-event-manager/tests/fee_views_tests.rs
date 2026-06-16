@@ -23,8 +23,7 @@ fn test_get_config_returns_correct_config() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -45,7 +44,7 @@ fn test_get_config_returns_correct_config() {
     assert_eq!(cfg.treasury, treasury);
     assert_eq!(cfg.xlm_token, xlm_token);
     assert_eq!(cfg.creation_fee, FEE);
-    assert_eq!(cfg.paused, false);
+    assert!(!cfg.paused);
 }
 
 #[test]
@@ -53,8 +52,7 @@ fn test_treasury_balance_and_withdraw_success() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -80,7 +78,14 @@ fn test_treasury_balance_and_withdraw_success() {
     let start_time = get_future_time(&env, 3600);
     let end_time = get_future_time(&env, 7200);
 
-    let (_event_id, _invite_code) = client.create_event(&creator, &title(&env), &desc(&env), &2u32, &start_time, &end_time);
+    let (_event_id, _invite_code) = client.create_event(
+        &creator,
+        &title(&env),
+        &desc(&env),
+        &2u32,
+        &start_time,
+        &end_time,
+    );
 
     // Treasury address should now have the fee
     let bal = client.get_treasury_balance();
@@ -106,8 +111,7 @@ fn test_withdraw_non_admin_rejected() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -127,7 +131,14 @@ fn test_withdraw_non_admin_rejected() {
     let start_time = get_future_time(&env, 3600);
     let end_time = get_future_time(&env, 7200);
 
-    client.create_event(&creator, &title(&env), &desc(&env), &2u32, &start_time, &end_time);
+    client.create_event(
+        &creator,
+        &title(&env),
+        &desc(&env),
+        &2u32,
+        &start_time,
+        &end_time,
+    );
 
     let non_admin = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -141,8 +152,7 @@ fn test_withdraw_insufficient_balance_rejected() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
@@ -168,8 +178,7 @@ fn test_withdraw_zero_amount_rejected() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };

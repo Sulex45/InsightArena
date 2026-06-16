@@ -10,8 +10,7 @@ use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
 
 fn setup() -> (Env, CreatorEventManagerContractClient<'static>, Address) {
     let env = Env::default();
-    let contract_id =
-        env.register_contract(None, creator_event_manager::CreatorEventManagerContract);
+    let contract_id = env.register(creator_event_manager::CreatorEventManagerContract, ());
     let client = CreatorEventManagerContractClient::new(&env, &contract_id);
     let client: CreatorEventManagerContractClient<'static> =
         unsafe { core::mem::transmute(client) };
