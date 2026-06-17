@@ -17,6 +17,11 @@ pub const OUTCOME_TEAM_A: &str = "TEAM_A";
 pub const OUTCOME_TEAM_B: &str = "TEAM_B";
 pub const OUTCOME_DRAW: &str = "DRAW";
 
+/// Points awarded for predicting the correct 1X2 result (wrong scoreline)
+pub const POINTS_CORRECT_RESULT: u32 = 1;
+/// Points awarded for predicting the exact scoreline (in addition to result points)
+pub const POINTS_EXACT_SCORE: u32 = 3;
+
 // ---------------------------------------------------------------------------
 // MatchResult
 // ---------------------------------------------------------------------------
@@ -66,6 +71,16 @@ impl MatchResult {
             return None;
         }
         Self::from_u8(value as u8)
+    }
+
+    /// Derive the 1X2 result from a final scoreline.
+    pub fn from_scores(home: u32, away: u32) -> MatchResult {
+        use core::cmp::Ordering;
+        match home.cmp(&away) {
+            Ordering::Greater => MatchResult::TeamA,
+            Ordering::Less => MatchResult::TeamB,
+            Ordering::Equal => MatchResult::Draw,
+        }
     }
 }
 
@@ -358,6 +373,7 @@ pub struct Match {
     /// The winning outcome; `None` until a result is submitted.
     /// Stored as `Option<u32>` (0=TeamA, 1=TeamB, 2=Draw) because Soroban's
     /// `#[contracttype]` does not support `Option<EnumType>` directly.
+    /// Derived from home_score and away_score.
     pub winning_team: Option<u32>,
 
     /// Address of the oracle / admin that submitted the result
@@ -365,6 +381,12 @@ pub struct Match {
 
     /// Unix timestamp when the result was submitted
     pub submitted_at: Option<u64>,
+
+    /// Final score for team A (home team)
+    pub home_score: Option<u32>,
+
+    /// Final score for team B (away team)
+    pub away_score: Option<u32>,
 }
 
 impl Match {
@@ -386,6 +408,8 @@ impl Match {
             winning_team: None,
             submitted_by: None,
             submitted_at: None,
+            home_score: None,
+            away_score: None,
         }
     }
 
@@ -526,6 +550,8 @@ impl Match {
 ///
 /// The `predicted_outcome` field uses a `Symbol` with one of three values:
 /// `"TEAM_A"`, `"TEAM_B"`, or `"DRAW"` (see `OUTCOME_*` constants).
+/// It is now derived from `predicted_home_score` and `predicted_away_score` at submission
+/// time for backward compatibility.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Prediction {
@@ -541,34 +567,60 @@ pub struct Prediction {
     /// Address of the user who placed this prediction
     pub predictor: Address,
 
-    /// Predicted outcome: Symbol of "TEAM_A", "TEAM_B", or "DRAW"
+    /// Predicted outcome: Symbol of "TEAM_A", "TEAM_B", or "DRAW" (derived, kept for backward compatibility)
     pub predicted_outcome: Symbol,
+
+    /// Predicted score for team A (home team)
+    pub predicted_home_score: u32,
+
+    /// Predicted score for team B (away team)
+    pub predicted_away_score: u32,
 
     /// Unix timestamp when the prediction was submitted
     pub predicted_at: u64,
 
-    /// `Some(true)` = correct, `Some(false)` = wrong, `None` = not yet graded
+    /// `Some(true)` = correct 1X2 result, `Some(false)` = wrong result, `None` = not yet graded
+    /// This tracks whether the result (1X2) was correct, separate from exact score.
     pub is_correct: Option<bool>,
+
+    /// Points earned: `None` until graded, then `Some(0|1|4)` based on accuracy
+    /// - 0 = wrong result
+    /// - 1 = correct result, wrong score
+    /// - 4 = exact score (includes result point)
+    pub points_earned: Option<u32>,
 }
 
 impl Prediction {
-    /// Create a new ungraded prediction.
+    /// Create a new ungraded prediction from a scoreline.
     pub fn new(
         prediction_id: u64,
         match_id: u64,
         event_id: u64,
         predictor: Address,
-        predicted_outcome: Symbol,
+        predicted_home_score: u32,
+        predicted_away_score: u32,
         predicted_at: u64,
+        env: &soroban_sdk::Env,
     ) -> Self {
+        let predicted_outcome = MatchResult::from_scores(predicted_home_score, predicted_away_score)
+            .to_u8();
+        let outcome_symbol = match predicted_outcome {
+            0 => Symbol::new(env, OUTCOME_TEAM_A),
+            1 => Symbol::new(env, OUTCOME_TEAM_B),
+            _ => Symbol::new(env, OUTCOME_DRAW),
+        };
+
         Self {
             prediction_id,
             match_id,
             event_id,
             predictor,
-            predicted_outcome,
+            predicted_outcome: outcome_symbol,
+            predicted_home_score,
+            predicted_away_score,
             predicted_at,
             is_correct: None,
+            points_earned: None,
         }
     }
 
@@ -587,9 +639,29 @@ impl Prediction {
         }
     }
 
-    /// Grade this prediction against the actual match result symbol.
-    pub fn grade(&mut self, actual_outcome: &Symbol) {
-        self.is_correct = Some(self.predicted_outcome == *actual_outcome);
+    /// Grade this prediction against the actual match result.
+    ///
+    /// Awards:
+    /// - 0 points if result is wrong
+    /// - 1 point if result is correct but score is wrong
+    /// - 4 points if score is exactly correct (1 for result + 3 for exact score)
+    pub fn grade(&mut self, actual_home: u32, actual_away: u32) {
+        let actual_result = MatchResult::from_scores(actual_home, actual_away);
+        let predicted_result =
+            MatchResult::from_scores(self.predicted_home_score, self.predicted_away_score);
+
+        let result_correct = predicted_result == actual_result;
+        let exact_correct =
+            self.predicted_home_score == actual_home && self.predicted_away_score == actual_away;
+
+        self.is_correct = Some(result_correct);
+        self.points_earned = Some(if exact_correct {
+            POINTS_CORRECT_RESULT + POINTS_EXACT_SCORE
+        } else if result_correct {
+            POINTS_CORRECT_RESULT
+        } else {
+            0
+        });
     }
 
     /// `true` if the prediction has been graded and was correct.
