@@ -236,7 +236,7 @@ export default function InvitePreview({ code }: InvitePreviewProps) {
   }, [event, code, joinEvent]);
 
   const handleViewEvent = useCallback(() => {
-    if (event) router.push(`/creator-events`);
+    if (event) router.push(`/creator-events/${event.id}`);
   }, [event, router]);
 
   const shareText = event
