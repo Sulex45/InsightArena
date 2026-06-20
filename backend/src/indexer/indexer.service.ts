@@ -662,7 +662,11 @@ export class IndexerService implements OnModuleInit {
 
     let pointsMultiplier =
       data.points_multiplier !== undefined ? Number(data.points_multiplier) : 1;
-    if (pointsMultiplier < 1 || pointsMultiplier > 3 || isNaN(pointsMultiplier)) {
+    if (
+      pointsMultiplier < 1 ||
+      pointsMultiplier > 3 ||
+      isNaN(pointsMultiplier)
+    ) {
       pointsMultiplier = 1;
     }
 
@@ -996,9 +1000,10 @@ export class IndexerService implements OnModuleInit {
 
     // Upsert leaderboard entry — the contract is the source of truth for final
     // rankings, so we overwrite any pre-existing DB values.
-    let leaderboardEntry = await this.creatorEventLeaderboardEntryRepository.findOne(
-      { where: { event_id: eventIdStr, user_address: userAddress } },
-    );
+    let leaderboardEntry =
+      await this.creatorEventLeaderboardEntryRepository.findOne({
+        where: { event_id: eventIdStr, user_address: userAddress },
+      });
 
     if (!leaderboardEntry) {
       leaderboardEntry = this.creatorEventLeaderboardEntryRepository.create({
@@ -1019,9 +1024,8 @@ export class IndexerService implements OnModuleInit {
       leaderboardEntry.is_winner = isWinner;
     }
 
-    leaderboardEntry = await this.creatorEventLeaderboardEntryRepository.save(
-      leaderboardEntry,
-    );
+    leaderboardEntry =
+      await this.creatorEventLeaderboardEntryRepository.save(leaderboardEntry);
 
     // Create the payout row linked to the leaderboard entry.
     // The idempotency check at the top of handleEventFinalized ensures we only

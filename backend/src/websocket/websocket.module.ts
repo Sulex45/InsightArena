@@ -15,7 +15,11 @@ import { NotificationBroadcasterService } from './notification-broadcaster.servi
       }),
     }),
   ],
-  providers: [EventsGateway, BroadcasterService, NotificationBroadcasterService],
+  providers: [
+    EventsGateway,
+    BroadcasterService,
+    NotificationBroadcasterService,
+  ],
   exports: [BroadcasterService, NotificationBroadcasterService],
 })
 export class WebsocketModule {}

@@ -6,9 +6,7 @@ import {
   TableForeignKey,
 } from 'typeorm';
 
-export class CreateWebhooksTablesWithDelivery1776100000000
-  implements MigrationInterface
-{
+export class CreateWebhooksTablesWithDelivery1776100000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create webhook_endpoints table
     await queryRunner.createTable(

@@ -4,13 +4,22 @@ import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import * as crypto from 'crypto';
 import { WebhookEndpoint } from '../entities/webhook-endpoint.entity';
-import { WebhookDeliveryLog, DeliveryStatus } from '../entities/webhook-delivery-log.entity';
+import {
+  WebhookDeliveryLog,
+  DeliveryStatus,
+} from '../entities/webhook-delivery-log.entity';
 
 @Injectable()
 export class WebhookDispatcherService {
   private readonly logger = new Logger(WebhookDispatcherService.name);
-  private readonly maxAttempts = parseInt(process.env.WEBHOOK_MAX_ATTEMPTS || '5', 10);
-  private readonly timeoutMs = parseInt(process.env.WEBHOOK_TIMEOUT_MS || '5000', 10);
+  private readonly maxAttempts = parseInt(
+    process.env.WEBHOOK_MAX_ATTEMPTS || '5',
+    10,
+  );
+  private readonly timeoutMs = parseInt(
+    process.env.WEBHOOK_TIMEOUT_MS || '5000',
+    10,
+  );
 
   constructor(
     @InjectRepository(WebhookEndpoint)
@@ -20,7 +29,10 @@ export class WebhookDispatcherService {
     private readonly httpService: HttpService,
   ) {}
 
-  async emit(eventType: string, payload: Record<string, unknown>): Promise<void> {
+  async emit(
+    eventType: string,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
     const endpoints = await this.endpointRepository.find({
       where: {
         is_active: true,
@@ -94,15 +106,19 @@ export class WebhookDispatcherService {
     try {
       const signature = this.generateSignature(payload, endpoint.secret_key);
 
-      const response = await this.httpService.axiosRef.post(endpoint.url, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Webhook-Signature': signature,
-          'X-Webhook-Event': event_type,
-          'X-Delivery-Attempt': String(attempt),
+      const response = await this.httpService.axiosRef.post(
+        endpoint.url,
+        payload,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Event': event_type,
+            'X-Delivery-Attempt': String(attempt),
+          },
+          timeout: this.timeoutMs,
         },
-        timeout: this.timeoutMs,
-      });
+      );
 
       if (response.status >= 200 && response.status < 300) {
         log.status = DeliveryStatus.SUCCESS;
@@ -124,7 +140,7 @@ export class WebhookDispatcherService {
       log.error_message = errorMsg;
 
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (error as any).response;
+        const response = error.response;
         log.http_status_code = response?.status || null;
       }
     }

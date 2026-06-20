@@ -9,7 +9,7 @@ describe('NotificationBroadcasterService', () => {
 
   beforeEach(async () => {
     jest.useFakeTimers();
-    
+
     mockServer = {
       to: jest.fn().mockReturnThis(),
       emit: jest.fn(),

@@ -100,14 +100,34 @@ function mockQueryRunner() {
 }
 
 const allEntities = [
-  User, Market, Prediction, Competition, Season, Notification,
-  Match, MatchPrediction, CreatorEvent, LeaderboardEntry, Dispute,
-  OracleSubmission, ActivityLog, MarketHistory, VerifiedAddress,
-  UserPreferences, UserAchievement, Achievement, UserFollow,
-  Comment, Bookmark, CompetitionParticipant, Flag,
+  User,
+  Market,
+  Prediction,
+  Competition,
+  Season,
+  Notification,
+  Match,
+  MatchPrediction,
+  CreatorEvent,
+  LeaderboardEntry,
+  Dispute,
+  OracleSubmission,
+  ActivityLog,
+  MarketHistory,
+  VerifiedAddress,
+  UserPreferences,
+  UserAchievement,
+  Achievement,
+  UserFollow,
+  Comment,
+  Bookmark,
+  CompetitionParticipant,
+  Flag,
 ];
 
-const mockDataSource = { createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner()) };
+const mockDataSource = {
+  createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner()),
+};
 
 const mockSorobanService = {
   createMarket: jest.fn(),
@@ -171,12 +191,18 @@ async function buildApp(
   const moduleFixture: TestingModule = await Test.createTestingModule({
     imports: [AppModule],
   })
-    .overrideProvider(CACHE_MANAGER).useValue(mockCacheManager)
-    .overrideProvider(SorobanService).useValue(mockSorobanService)
-    .overrideProvider(NotificationsService).useValue(mockNotificationsService)
-    .overrideProvider(OracleService).useValue(mockOracleService)
-    .overrideProvider(ContractService).useValue(mockContractService)
-    .overrideProvider(DataSource).useValue(mockDataSource)
+    .overrideProvider(CACHE_MANAGER)
+    .useValue(mockCacheManager)
+    .overrideProvider(SorobanService)
+    .useValue(mockSorobanService)
+    .overrideProvider(NotificationsService)
+    .useValue(mockNotificationsService)
+    .overrideProvider(OracleService)
+    .useValue(mockOracleService)
+    .overrideProvider(ContractService)
+    .useValue(mockContractService)
+    .overrideProvider(DataSource)
+    .useValue(mockDataSource)
     .overrideGuard(JwtAuthGuard)
     .useValue(guardOverride ?? { canActivate: () => true })
     .overrideGuard(RolesGuard)
@@ -253,7 +279,8 @@ describe('E2E: Critical Flows', () => {
     });
 
     it('should reject non-admin role (403)', async () => {
-      app = await buildApp(undefined,
+      app = await buildApp(
+        undefined,
         { canActivate: () => true },
         { canActivate: () => false },
       );
@@ -281,7 +308,16 @@ describe('E2E: Critical Flows', () => {
 
     it('should fetch pending matches requiring results', async () => {
       mockOracleService.getPendingMatches.mockResolvedValue({
-        matches: [{ id: 'match-uuid-1', on_chain_match_id: 1n, team_a: 'Team Alpha', team_b: 'Team Beta', match_time: new Date(Date.now() - 3600000), result_submitted: false }],
+        matches: [
+          {
+            id: 'match-uuid-1',
+            on_chain_match_id: 1n,
+            team_a: 'Team Alpha',
+            team_b: 'Team Beta',
+            match_time: new Date(Date.now() - 3600000),
+            result_submitted: false,
+          },
+        ],
         total: 1,
       });
 
@@ -311,7 +347,15 @@ describe('E2E: Critical Flows', () => {
 
     it('should fetch oracle submission history', async () => {
       mockOracleService.getSubmissions.mockResolvedValue({
-        submissions: [{ id: 'sub-1', match_id: 'match-uuid-1', result: 'TEAM_A', submitted_at: new Date(), status: 'confirmed' }],
+        submissions: [
+          {
+            id: 'sub-1',
+            match_id: 'match-uuid-1',
+            result: 'TEAM_A',
+            submitted_at: new Date(),
+            status: 'confirmed',
+          },
+        ],
         total: 1,
       });
 
@@ -339,7 +383,17 @@ describe('E2E: Critical Flows', () => {
       const notifRepoMock = {
         ...mockRepository(),
         findAndCount: jest.fn().mockResolvedValue([
-          [{ id: 1, user_address: 'GBXXX...', type: 'match_result', title: 'Match Result', message: 'Team A won', read: false, created_at: new Date() }],
+          [
+            {
+              id: 1,
+              user_address: 'GBXXX...',
+              type: 'match_result',
+              title: 'Match Result',
+              message: 'Team A won',
+              read: false,
+              created_at: new Date(),
+            },
+          ],
           1,
         ]),
       };
@@ -347,18 +401,28 @@ describe('E2E: Critical Flows', () => {
       const moduleFixture: TestingModule = await Test.createTestingModule({
         imports: [AppModule],
       })
-        .overrideProvider(CACHE_MANAGER).useValue(mockCacheManager)
-        .overrideProvider(SorobanService).useValue(mockSorobanService)
-        .overrideProvider(NotificationsService).useValue(mockNotificationsService)
-        .overrideProvider(OracleService).useValue(mockOracleService)
-        .overrideProvider(ContractService).useValue(mockContractService)
-        .overrideProvider(DataSource).useValue(mockDataSource)
-        .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
-        .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+        .overrideProvider(CACHE_MANAGER)
+        .useValue(mockCacheManager)
+        .overrideProvider(SorobanService)
+        .useValue(mockSorobanService)
+        .overrideProvider(NotificationsService)
+        .useValue(mockNotificationsService)
+        .overrideProvider(OracleService)
+        .useValue(mockOracleService)
+        .overrideProvider(ContractService)
+        .useValue(mockContractService)
+        .overrideProvider(DataSource)
+        .useValue(mockDataSource)
+        .overrideGuard(JwtAuthGuard)
+        .useValue({ canActivate: () => true })
+        .overrideGuard(RolesGuard)
+        .useValue({ canActivate: () => true })
         .compile();
 
       for (const entity of allEntities) {
-        moduleFixture.overrideProvider(getRepositoryToken(entity)).useValue(notifRepoMock);
+        moduleFixture
+          .overrideProvider(getRepositoryToken(entity))
+          .useValue(notifRepoMock);
       }
 
       app = moduleFixture.createNestApplication();

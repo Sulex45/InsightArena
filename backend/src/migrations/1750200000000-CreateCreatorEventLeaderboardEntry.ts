@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
-export class CreateCreatorEventLeaderboardEntry1750200000000
-  implements MigrationInterface
-{
+export class CreateCreatorEventLeaderboardEntry1750200000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
       new Table({
@@ -15,11 +13,31 @@ export class CreateCreatorEventLeaderboardEntry1750200000000
             generationStrategy: 'uuid',
             default: 'uuid_generate_v4()',
           },
-          { name: 'event_id', type: 'varchar', length: '255', isNullable: false },
-          { name: 'user_address', type: 'varchar', length: '255', isNullable: false },
+          {
+            name: 'event_id',
+            type: 'varchar',
+            length: '255',
+            isNullable: false,
+          },
+          {
+            name: 'user_address',
+            type: 'varchar',
+            length: '255',
+            isNullable: false,
+          },
           { name: 'rank', type: 'int', isNullable: false },
-          { name: 'total_predictions', type: 'int', default: 0, isNullable: false },
-          { name: 'correct_predictions', type: 'int', default: 0, isNullable: false },
+          {
+            name: 'total_predictions',
+            type: 'int',
+            default: 0,
+            isNullable: false,
+          },
+          {
+            name: 'correct_predictions',
+            type: 'int',
+            default: 0,
+            isNullable: false,
+          },
           {
             name: 'accuracy_percentage',
             type: 'numeric',
@@ -28,7 +46,12 @@ export class CreateCreatorEventLeaderboardEntry1750200000000
             default: 0,
             isNullable: false,
           },
-          { name: 'is_winner', type: 'boolean', default: false, isNullable: false },
+          {
+            name: 'is_winner',
+            type: 'boolean',
+            default: false,
+            isNullable: false,
+          },
           { name: 'completion_time', type: 'timestamptz', isNullable: true },
           {
             name: 'created_at',

@@ -23,7 +23,10 @@ describe('CreatorEventsService predictions and stats', () => {
       | 'getPredictionDistribution'
     >
   >;
-  let creatorEventRepository: { createQueryBuilder: jest.Mock; findOne: jest.Mock };
+  let creatorEventRepository: {
+    createQueryBuilder: jest.Mock;
+    findOne: jest.Mock;
+  };
 
   const mockEvent = {
     eventId: '1',

@@ -38,7 +38,9 @@ export class PayoutEntryDto {
   })
   payout_amount_stroops: string;
 
-  @ApiProperty({ description: 'Whether the participant has claimed their prize' })
+  @ApiProperty({
+    description: 'Whether the participant has claimed their prize',
+  })
   is_claimed: boolean;
 
   @ApiProperty({ description: 'Final rank in the event leaderboard' })

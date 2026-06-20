@@ -36,7 +36,11 @@ export class WebhookDeliveryLog {
   @Column({ type: 'jsonb' })
   payload: Record<string, unknown>;
 
-  @Column({ type: 'varchar', enum: DeliveryStatus, default: DeliveryStatus.PENDING })
+  @Column({
+    type: 'varchar',
+    enum: DeliveryStatus,
+    default: DeliveryStatus.PENDING,
+  })
   status: DeliveryStatus;
 
   @Column({ type: 'int', default: 0 })

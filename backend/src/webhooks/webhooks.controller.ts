@@ -70,6 +70,11 @@ export class WebhooksController {
   ): Promise<{ logs: WebhookDeliveryLog[]; total: number }> {
     const parsedLimit = limit ? Math.min(parseInt(limit, 10), 100) : 50;
     const parsedOffset = offset ? parseInt(offset, 10) : 0;
-    return this.webhooksService.getDeliveryLogs(id, user.id, parsedLimit, parsedOffset);
+    return this.webhooksService.getDeliveryLogs(
+      id,
+      user.id,
+      parsedLimit,
+      parsedOffset,
+    );
   }
 }

@@ -80,11 +80,29 @@ function mockRepository() {
 }
 
 const allEntities = [
-  User, Market, Prediction, Competition, Season, Notification,
-  Match, MatchPrediction, CreatorEvent, LeaderboardEntry, Dispute,
-  OracleSubmission, ActivityLog, MarketHistory, VerifiedAddress,
-  UserPreferences, UserAchievement, Achievement, UserFollow,
-  Comment, Bookmark, CompetitionParticipant, Flag,
+  User,
+  Market,
+  Prediction,
+  Competition,
+  Season,
+  Notification,
+  Match,
+  MatchPrediction,
+  CreatorEvent,
+  LeaderboardEntry,
+  Dispute,
+  OracleSubmission,
+  ActivityLog,
+  MarketHistory,
+  VerifiedAddress,
+  UserPreferences,
+  UserAchievement,
+  Achievement,
+  UserFollow,
+  Comment,
+  Bookmark,
+  CompetitionParticipant,
+  Flag,
 ];
 
 // ---------------------------------------------------------------------------
@@ -130,7 +148,9 @@ const mockContract = {
   getCreationFee: jest.fn(),
   isVerified: jest.fn().mockResolvedValue(false),
   getEventStatistics: jest.fn(),
-  getPredictionDistribution: jest.fn().mockResolvedValue({ teamA: 0, teamB: 0, draw: 0 }),
+  getPredictionDistribution: jest
+    .fn()
+    .mockResolvedValue({ teamA: 0, teamB: 0, draw: 0 }),
   getMatchPredictions: jest.fn().mockResolvedValue([]),
 };
 
@@ -173,14 +193,22 @@ describe('API Integration Tests', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
-      .overrideProvider(CACHE_MANAGER).useValue(mockCache)
-      .overrideProvider(SorobanService).useValue(mockSoroban)
-      .overrideProvider(NotificationsService).useValue(mockNotifications)
-      .overrideProvider(OracleService).useValue(mockOracle)
-      .overrideProvider(ContractService).useValue(mockContract)
-      .overrideProvider(DataSource).useValue(mockDataSource)
-      .overrideGuard(JwtAuthGuard).useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard).useValue({ canActivate: () => true })
+      .overrideProvider(CACHE_MANAGER)
+      .useValue(mockCache)
+      .overrideProvider(SorobanService)
+      .useValue(mockSoroban)
+      .overrideProvider(NotificationsService)
+      .useValue(mockNotifications)
+      .overrideProvider(OracleService)
+      .useValue(mockOracle)
+      .overrideProvider(ContractService)
+      .useValue(mockContract)
+      .overrideProvider(DataSource)
+      .useValue(mockDataSource)
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
       .compile();
 
     for (const entity of allEntities) {
@@ -190,7 +218,9 @@ describe('API Integration Tests', () => {
     }
 
     const app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalFilters(new HttpExceptionFilter());
     await app.init();
@@ -211,9 +241,7 @@ describe('API Integration Tests', () => {
 
   describe('GET /health', () => {
     it('GET /health/ping returns 200', () => {
-      return request(app.getHttpServer())
-        .get('/health/ping')
-        .expect(200);
+      return request(app.getHttpServer()).get('/health/ping').expect(200);
     });
 
     it('GET /health returns 200 with JSON', () => {
@@ -259,9 +287,7 @@ describe('API Integration Tests', () => {
     });
 
     it('is public (no auth required)', () => {
-      return request(app.getHttpServer())
-        .get('/markets')
-        .expect(200);
+      return request(app.getHttpServer()).get('/markets').expect(200);
     });
   });
 
@@ -309,9 +335,7 @@ describe('API Integration Tests', () => {
     });
 
     it('is public', () => {
-      return request(app.getHttpServer())
-        .get('/leaderboard')
-        .expect(200);
+      return request(app.getHttpServer()).get('/leaderboard').expect(200);
     });
   });
 
@@ -391,15 +415,11 @@ describe('API Integration Tests', () => {
 
   describe('GET /matches/:id', () => {
     it('returns 404 for non-existent match', () => {
-      return request(app.getHttpServer())
-        .get('/matches/999')
-        .expect(404);
+      return request(app.getHttpServer()).get('/matches/999').expect(404);
     });
 
     it('is public', () => {
-      return request(app.getHttpServer())
-        .get('/matches/999')
-        .expect(404);
+      return request(app.getHttpServer()).get('/matches/999').expect(404);
     });
   });
 
@@ -451,9 +471,7 @@ describe('API Integration Tests', () => {
 
   describe('Error Handling', () => {
     it('returns 404 for unknown routes', () => {
-      return request(app.getHttpServer())
-        .get('/nonexistent-route')
-        .expect(404);
+      return request(app.getHttpServer()).get('/nonexistent-route').expect(404);
     });
   });
 
@@ -463,9 +481,7 @@ describe('API Integration Tests', () => {
 
   describe('Authentication', () => {
     it('returns 401 on protected route without auth (guard bypassed)', () => {
-      return request(app.getHttpServer())
-        .get('/users/me')
-        .expect(401);
+      return request(app.getHttpServer()).get('/users/me').expect(401);
     });
   });
 
@@ -475,9 +491,7 @@ describe('API Integration Tests', () => {
 
   describe('GET /competitions', () => {
     it('returns competition list', () => {
-      return request(app.getHttpServer())
-        .get('/competitions')
-        .expect(200);
+      return request(app.getHttpServer()).get('/competitions').expect(200);
     });
 
     it('supports pagination', () => {
@@ -503,23 +517,17 @@ describe('API Integration Tests', () => {
 
   describe('GET /seasons', () => {
     it('returns season list', () => {
-      return request(app.getHttpServer())
-        .get('/seasons')
-        .expect(200);
+      return request(app.getHttpServer()).get('/seasons').expect(200);
     });
 
     it('is public', () => {
-      return request(app.getHttpServer())
-        .get('/seasons')
-        .expect(200);
+      return request(app.getHttpServer()).get('/seasons').expect(200);
     });
   });
 
   describe('GET /seasons/active', () => {
     it('returns 404 when no active season exists', () => {
-      return request(app.getHttpServer())
-        .get('/seasons/active')
-        .expect(404);
+      return request(app.getHttpServer()).get('/seasons/active').expect(404);
     });
   });
 

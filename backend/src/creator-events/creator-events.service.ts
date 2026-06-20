@@ -812,12 +812,13 @@ export class CreatorEventsService {
     });
 
     if (cachedEvent?.is_finalized) {
-      const [entries, total] = await this.leaderboardEntryRepository.findAndCount({
-        where: { event_id: eventId },
-        order: { rank: 'ASC' },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      const [entries, total] =
+        await this.leaderboardEntryRepository.findAndCount({
+          where: { event_id: eventId },
+          order: { rank: 'ASC' },
+          skip: (page - 1) * limit,
+          take: limit,
+        });
 
       return {
         data: entries.map((e) => ({

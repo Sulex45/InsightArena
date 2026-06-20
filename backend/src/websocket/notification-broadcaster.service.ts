@@ -101,10 +101,7 @@ export class NotificationBroadcasterService implements OnModuleDestroy {
   /**
    * Notify user they won an event
    */
-  broadcastEventWinner(
-    userAddress: string,
-    winner: EventWinnerPayload,
-  ): void {
+  broadcastEventWinner(userAddress: string, winner: EventWinnerPayload): void {
     const payload = {
       event: 'event:winner',
       data: {
@@ -201,9 +198,7 @@ export class NotificationBroadcasterService implements OnModuleDestroy {
     );
 
     // Request confirmation for each notification
-    queue.forEach((n) =>
-      this.requestDeliveryConfirmation(userAddress, n.id),
-    );
+    queue.forEach((n) => this.requestDeliveryConfirmation(userAddress, n.id));
 
     this.batchQueue.delete(key);
   }

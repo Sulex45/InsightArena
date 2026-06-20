@@ -48,7 +48,9 @@ describe('EventsGateway', () => {
   describe('handleConnection', () => {
     it('joins user room when token is valid', async () => {
       jwtService.verify.mockReturnValue({ sub: 'GABC123' });
-      const client = makeSocket({ handshake: { auth: { token: 'valid' }, headers: {} } });
+      const client = makeSocket({
+        handshake: { auth: { token: 'valid' }, headers: {} },
+      });
       await gateway.handleConnection(client);
       expect(client.join).toHaveBeenCalledWith('user:GABC123');
       expect(client.userAddress).toBe('GABC123');
@@ -61,8 +63,12 @@ describe('EventsGateway', () => {
     });
 
     it('connects unauthenticated when token is invalid', async () => {
-      jwtService.verify.mockImplementation(() => { throw new Error('invalid'); });
-      const client = makeSocket({ handshake: { auth: { token: 'bad' }, headers: {} } });
+      jwtService.verify.mockImplementation(() => {
+        throw new Error('invalid');
+      });
+      const client = makeSocket({
+        handshake: { auth: { token: 'bad' }, headers: {} },
+      });
       await gateway.handleConnection(client);
       expect(client.join).not.toHaveBeenCalled();
     });
@@ -71,7 +77,9 @@ describe('EventsGateway', () => {
   describe('handleDisconnect', () => {
     it('removes connection tracking on disconnect', async () => {
       jwtService.verify.mockReturnValue({ sub: 'GABC123' });
-      const client = makeSocket({ handshake: { auth: { token: 'valid' }, headers: {} } });
+      const client = makeSocket({
+        handshake: { auth: { token: 'valid' }, headers: {} },
+      });
       await gateway.handleConnection(client);
       gateway.handleDisconnect(client);
       expect((gateway as any).connections.has('socket-1')).toBe(false);
@@ -95,14 +103,21 @@ describe('EventsGateway', () => {
     it('rejects invalid room format', async () => {
       const client = makeSocket();
       await gateway.handleJoin(client, 'invalid-room');
-      expect(client.emit).toHaveBeenCalledWith('error', { message: 'Invalid room' });
+      expect(client.emit).toHaveBeenCalledWith('error', {
+        message: 'Invalid room',
+      });
       expect(client.join).not.toHaveBeenCalled();
     });
 
     it('rejects user room for unauthenticated client', async () => {
       const client = makeSocket();
-      await gateway.handleJoin(client, 'user:GABC1234567890123456789012345678901234567890123456789012');
-      expect(client.emit).toHaveBeenCalledWith('error', { message: 'Unauthorized' });
+      await gateway.handleJoin(
+        client,
+        'user:GABC1234567890123456789012345678901234567890123456789012',
+      );
+      expect(client.emit).toHaveBeenCalledWith('error', {
+        message: 'Unauthorized',
+      });
     });
 
     it('allows user to join their own user room', async () => {
@@ -116,7 +131,9 @@ describe('EventsGateway', () => {
       const client = makeSocket();
       (gateway as any).rateLimits.set('socket-1', 60);
       await gateway.handleJoin(client, 'event:1');
-      expect(client.emit).toHaveBeenCalledWith('error', { message: 'Rate limit exceeded' });
+      expect(client.emit).toHaveBeenCalledWith('error', {
+        message: 'Rate limit exceeded',
+      });
     });
   });
 

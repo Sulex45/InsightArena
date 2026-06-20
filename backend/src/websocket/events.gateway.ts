@@ -90,8 +90,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Validate room format
     if (
       !room ||
-      !/^(event|match):\d+$/.test(room) &&
-      !/^user:[A-Z0-9]{56}$/.test(room)
+      (!/^(event|match):\d+$/.test(room) && !/^user:[A-Z0-9]{56}$/.test(room))
     ) {
       client.emit('error', { message: 'Invalid room' });
       return;

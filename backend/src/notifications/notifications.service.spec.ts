@@ -91,7 +91,9 @@ describe('NotificationsService', () => {
         data: null,
       });
       expect(result).toEqual(mockNotification);
-      expect(mockNotificationBroadcaster.broadcastNewNotification).toHaveBeenCalled();
+      expect(
+        mockNotificationBroadcaster.broadcastNewNotification,
+      ).toHaveBeenCalled();
     });
 
     it('should pass data when provided', async () => {
@@ -179,10 +181,9 @@ describe('NotificationsService', () => {
         { id: 1, user_address: 'GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3XNRBF7XN' },
         { read: true },
       );
-      expect(mockNotificationBroadcaster.broadcastNotificationRead).toHaveBeenCalledWith(
-        'GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3XNRBF7XN',
-        1,
-      );
+      expect(
+        mockNotificationBroadcaster.broadcastNotificationRead,
+      ).toHaveBeenCalledWith('GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3XNRBF7XN', 1);
     });
   });
 

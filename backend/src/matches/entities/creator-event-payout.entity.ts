@@ -45,7 +45,10 @@ export class CreatorEventPayout {
   @Column({ type: 'uuid' })
   leaderboard_entry_id: string;
 
-  @ManyToOne(() => CreatorEventLeaderboardEntry, { onDelete: 'CASCADE', eager: false })
+  @ManyToOne(() => CreatorEventLeaderboardEntry, {
+    onDelete: 'CASCADE',
+    eager: false,
+  })
   @JoinColumn({ name: 'leaderboard_entry_id' })
   leaderboard_entry: CreatorEventLeaderboardEntry;
 
