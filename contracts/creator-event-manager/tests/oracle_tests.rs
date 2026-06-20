@@ -69,6 +69,7 @@ fn create_event_with_match(
         &end_time,
         &0i128,
         &Vec::new(env),
+        &0i128,
     );
 
     let match_id = env.as_contract(contract_id, || {
@@ -196,6 +197,7 @@ fn test_get_user_score_calculation_accurate() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {

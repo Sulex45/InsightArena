@@ -235,8 +235,14 @@ pub struct Event {
     pub match_count: u32,
 
     /// XLM prize pool (in stroops) escrowed in the contract for winners.
-    /// `0` means this is a "fun event" with no payouts.
+    /// `0` means this is a "fun event" with no payouts. Grows as paid
+    /// participants join (see `entry_fee`).
     pub prize_pool: i128,
+
+    /// XLM fee (in stroops) each participant pays to join. `0` = free to join.
+    /// When non-zero, the fee is collected on `join_event` and added to
+    /// `prize_pool`.
+    pub entry_fee: i128,
 
     /// Percentage of the prize pool awarded to each leaderboard rank, in
     /// 1-based rank order (index 0 → rank 1). Each entry is 1–100 and the
@@ -264,6 +270,7 @@ impl Event {
         max_participants: u32,
         prize_pool: i128,
         reward_distribution: Vec<u32>,
+        entry_fee: i128,
     ) -> Self {
         Self {
             event_id,
@@ -281,6 +288,7 @@ impl Event {
             participant_count: 0,
             match_count: 0,
             prize_pool,
+            entry_fee,
             reward_distribution,
             is_finalized: false,
         }

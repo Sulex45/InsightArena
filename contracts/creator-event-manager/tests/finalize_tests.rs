@@ -87,6 +87,7 @@ fn create_funded_event(
         &end_time,
         &prize_pool,
         &reward_distribution,
+        &0i128,
     );
 
     let mut match_ids: Vec<u64> = Vec::new(env);

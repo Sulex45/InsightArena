@@ -53,6 +53,7 @@ fn make_event(env: &Env, event_id: u64) -> Event {
         100u32,
         0i128,
         Vec::new(env),
+        0i128,
     )
 }
 
@@ -81,6 +82,7 @@ fn test_event_creation() {
         50u32,
         0i128,
         Vec::new(&env),
+        0i128,
     );
 
     assert_eq!(event.event_id, 1);
@@ -150,6 +152,7 @@ fn test_event_max_participants() {
         2u32,
         0i128,
         Vec::new(&env),
+        0i128,
     );
 
     assert!(event.add_participant().is_ok());
@@ -173,6 +176,7 @@ fn test_event_unlimited_participants() {
         0u32, // 0 = unlimited
         0i128,
         Vec::new(&env),
+        0i128,
     );
 
     for _ in 0..10 {

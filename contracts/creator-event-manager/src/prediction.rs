@@ -1,8 +1,9 @@
-use soroban_sdk::{Address, Env, Symbol, Vec};
+use soroban_sdk::{token::Client as TokenClient, Address, Env, Symbol, Vec};
 
 use crate::admin;
 use crate::storage::{self};
 use crate::storage_types::{DataKey, Event, Match, Prediction};
+use crate::token::TokenHelper;
 
 /// Errors returned by event joining and prediction operations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -21,12 +22,13 @@ pub enum PredictionError {
     AlreadyPredicted = 11,
     PredictionNotFound = 12,
     Overflow = 13,
+    InsufficientEntryFeeBalance = 14,
 }
 
-fn emit_user_joined(env: &Env, event_id: u64, user: &Address) {
+fn emit_user_joined(env: &Env, event_id: u64, user: &Address, entry_fee_paid: i128) {
     env.events().publish(
         (Symbol::new(env, "event"), Symbol::new(env, "joined")),
-        (event_id, user.clone()),
+        (event_id, user.clone(), entry_fee_paid),
     );
 }
 
@@ -102,6 +104,33 @@ pub fn join_event(env: &Env, user: Address, invite_code: Symbol) -> Result<(), P
         return Err(PredictionError::EventFull);
     }
 
+    // Collect the entry fee (if any) before mutating any state, so a user who
+    // cannot cover the fee is rejected without a partial join.
+    let entry_fee = event.entry_fee;
+    if entry_fee > 0 {
+        let xlm_token = admin::get_xlm_token(env).unwrap_or_else(|| panic!("not_initialized"));
+
+        if !TokenHelper::has_sufficient_balance(env, &xlm_token, &user, entry_fee) {
+            return Err(PredictionError::InsufficientEntryFeeBalance);
+        }
+
+        // Compute the grown pool before moving funds so an (effectively
+        // unreachable) overflow aborts before any transfer occurs.
+        let new_prize_pool = event
+            .prize_pool
+            .checked_add(entry_fee)
+            .ok_or(PredictionError::Overflow)?;
+
+        // Escrow the fee from the user into the contract address.
+        TokenClient::new(env, &xlm_token).transfer(
+            &user,
+            &env.current_contract_address(),
+            &entry_fee,
+        );
+
+        event.prize_pool = new_prize_pool;
+    }
+
     storage::add_event_participant(env, event_id, &user);
     event.participant_count = event
         .participant_count
@@ -109,7 +138,7 @@ pub fn join_event(env: &Env, user: Address, invite_code: Symbol) -> Result<(), P
         .ok_or(PredictionError::Overflow)?;
     storage::set_event(env, event_id, &event);
 
-    emit_user_joined(env, event_id, &user);
+    emit_user_joined(env, event_id, &user, entry_fee);
 
     Ok(())
 }

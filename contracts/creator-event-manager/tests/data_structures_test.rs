@@ -26,6 +26,7 @@ fn make_event(env: &Env, event_id: u64) -> Event {
         100u32,
         0i128,
         Vec::new(env),
+        0i128,
     )
 }
 
@@ -135,6 +136,7 @@ fn test_event_add_participant_rejects_when_full() {
         1u32,
         0i128,
         Vec::new(&env),
+        0i128,
     );
     assert!(event.add_participant().is_ok());
     assert_eq!(

@@ -80,6 +80,7 @@ fn test_create_event_success() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     assert_eq!(event_id, 1);
 }
@@ -102,6 +103,7 @@ fn test_create_event_stores_correct_fields() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let event = client.get_event(&event_id);
@@ -136,6 +138,7 @@ fn test_create_event_fee_transferred_to_treasury() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     assert_eq!(token.balance(&treasury) - before, FEE);
 }
@@ -160,6 +163,7 @@ fn test_create_event_fails_when_paused() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -182,6 +186,7 @@ fn test_create_event_fails_empty_title() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -204,6 +209,7 @@ fn test_create_event_fails_empty_description() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -226,6 +232,7 @@ fn test_create_event_fails_zero_max_participants() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -248,6 +255,7 @@ fn test_create_event_fails_insufficient_balance() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -269,6 +277,7 @@ fn test_get_event_returns_correct_data() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     let event = client.get_event(&event_id);
     assert_eq!(event.event_id, event_id);
@@ -302,6 +311,7 @@ fn test_get_event_by_code_returns_correct_event() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     let event = client.get_event_by_code(&invite_code);
     assert_eq!(event.event_id, event_id);
@@ -337,6 +347,7 @@ fn test_create_event_with_valid_duration() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let event = client.get_event(&event_id);
@@ -364,6 +375,7 @@ fn test_create_event_end_before_start_rejected() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -387,6 +399,7 @@ fn test_create_event_end_equals_start_rejected() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -411,6 +424,7 @@ fn test_create_event_start_in_past_rejected() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -434,6 +448,7 @@ fn test_create_event_duration_too_long_rejected() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 }
 
@@ -455,6 +470,7 @@ fn test_event_has_ended_helper() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     let event = client.get_event(&event_id);
 
@@ -486,6 +502,7 @@ fn test_event_is_within_window_helper() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     let event = client.get_event(&event_id);
 
@@ -539,6 +556,7 @@ fn test_create_event_with_prize_pool_escrows_funds() {
         &end_time,
         &PRIZE_POOL,
         &distribution(&env),
+        &0i128,
     );
 
     // Contract escrows exactly the prize pool (the creation fee goes to treasury).
@@ -568,6 +586,7 @@ fn test_create_event_reward_distribution_must_sum_to_100() {
         &end_time,
         &PRIZE_POOL,
         &dist,
+        &0i128,
     );
 }
 
@@ -592,6 +611,7 @@ fn test_create_event_too_many_reward_ranks() {
         &end_time,
         &PRIZE_POOL,
         &dist,
+        &0i128,
     );
 }
 
@@ -616,6 +636,7 @@ fn test_create_event_zero_entry_in_distribution_rejected() {
         &end_time,
         &PRIZE_POOL,
         &dist,
+        &0i128,
     );
 }
 
@@ -639,6 +660,7 @@ fn test_create_event_insufficient_balance_for_prize_pool() {
         &end_time,
         &PRIZE_POOL,
         &distribution(&env),
+        &0i128,
     );
 }
 
@@ -663,6 +685,7 @@ fn test_create_event_zero_prize_pool_requires_empty_distribution() {
         &end_time,
         &0i128,
         &dist,
+        &0i128,
     );
 }
 
@@ -684,6 +707,7 @@ fn test_get_event_prize_pool_and_distribution_views() {
         &end_time,
         &PRIZE_POOL,
         &distribution(&env),
+        &0i128,
     );
 
     assert_eq!(client.get_event_prize_pool(&event_id), PRIZE_POOL);
@@ -714,6 +738,7 @@ fn test_get_event_prize_pool_zero_for_fun_event() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     assert_eq!(client.get_event_prize_pool(&event_id), 0);

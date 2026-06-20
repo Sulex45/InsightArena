@@ -3,7 +3,7 @@ use creator_event_manager::storage;
 use creator_event_manager::CreatorEventManagerContractClient;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
-use soroban_sdk::token::StellarAssetClient;
+use soroban_sdk::token::{StellarAssetClient, TokenClient};
 use soroban_sdk::{Address, Env, String, Symbol, Vec};
 
 const FEE: i128 = 1_000_000;
@@ -73,6 +73,7 @@ fn create_event_and_match(
         &end_time,
         &0i128,
         &Vec::new(env),
+        &0i128,
     );
 
     let match_id = env.as_contract(contract_id, || {
@@ -325,6 +326,7 @@ fn test_get_user_predictions_returns_all_for_event() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {
@@ -402,6 +404,7 @@ fn test_get_user_predictions_sorted_by_predicted_at() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {
@@ -570,6 +573,7 @@ fn test_get_prediction_distribution_multiple_matches_independent() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let (match_id_1, match_id_2) = env.as_contract(&contract_id, || {
@@ -634,3 +638,146 @@ fn test_get_prediction_distribution_multiple_matches_independent() {
 // 2. test_submit_prediction_scores_are_valid
 //    - Verifies that any non-negative score pair is accepted (e.g., 0-0)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Entry-fee join tests
+// ---------------------------------------------------------------------------
+
+/// Create an event with an optional `entry_fee` and seeded `prize_pool`.
+/// The creator is funded with `FEE + prize_pool` so creation succeeds.
+fn create_paid_event(
+    env: &Env,
+    client: &CreatorEventManagerContractClient<'static>,
+    creator: &Address,
+    xlm_token: &Address,
+    max_participants: u32,
+    entry_fee: i128,
+    prize_pool: i128,
+    reward_distribution: Vec<u32>,
+) -> (u64, Symbol) {
+    fund(env, xlm_token, creator, FEE + prize_pool);
+
+    let start_time = get_future_time(env, 3600);
+    let end_time = get_future_time(env, 7200);
+    client.create_event(
+        creator,
+        &title(env),
+        &desc(env),
+        &max_participants,
+        &start_time,
+        &end_time,
+        &prize_pool,
+        &reward_distribution,
+        &entry_fee,
+    )
+}
+
+#[test]
+fn test_join_event_free_when_entry_fee_zero() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    // entry_fee == 0 → identical to the original free-join behaviour.
+    let (event_id, invite_code, _) =
+        create_event_and_match(&env, &contract_id, &client, &creator, &xlm_token, 2, 10_000);
+
+    // The user is never funded; a free join must not require any XLM.
+    client.join_event(&user, &invite_code);
+
+    let event = client.get_event(&event_id);
+    assert_eq!(event.participant_count, 1);
+    assert_eq!(client.get_event_prize_pool(&event_id), 0);
+    assert_eq!(TokenClient::new(&env, &xlm_token).balance(&user), 0);
+}
+
+#[test]
+fn test_join_event_with_entry_fee_charges_user_and_grows_pool() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    let entry_fee: i128 = 5_000_000;
+    let (event_id, invite_code) = create_paid_event(
+        &env,
+        &client,
+        &creator,
+        &xlm_token,
+        10,
+        entry_fee,
+        0,
+        Vec::new(&env),
+    );
+
+    // Fund the user with exactly the entry fee.
+    fund(&env, &xlm_token, &user, entry_fee);
+
+    client.join_event(&user, &invite_code);
+
+    // The fee left the user and grew the prize pool.
+    assert_eq!(TokenClient::new(&env, &xlm_token).balance(&user), 0);
+    assert_eq!(client.get_event_prize_pool(&event_id), entry_fee);
+    assert_eq!(client.get_event(&event_id).participant_count, 1);
+}
+
+#[test]
+#[should_panic(expected = "insufficient_entry_fee_balance")]
+fn test_join_event_insufficient_balance_for_entry_fee_rejected() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    let user = Address::generate(&env);
+
+    let entry_fee: i128 = 5_000_000;
+    let (_event_id, invite_code) = create_paid_event(
+        &env,
+        &client,
+        &creator,
+        &xlm_token,
+        10,
+        entry_fee,
+        0,
+        Vec::new(&env),
+    );
+
+    // Fund the user with less than the entry fee — the join must be rejected.
+    fund(&env, &xlm_token, &user, entry_fee - 1);
+
+    client.join_event(&user, &invite_code);
+}
+
+#[test]
+fn test_prize_pool_reflects_creator_seed_plus_entry_fees() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+
+    let seed: i128 = 10_000_000;
+    let entry_fee: i128 = 2_000_000;
+    let n: usize = 4;
+
+    let mut reward = Vec::new(&env);
+    reward.push_back(100u32);
+
+    let (event_id, invite_code) = create_paid_event(
+        &env,
+        &client,
+        &creator,
+        &xlm_token,
+        n as u32,
+        entry_fee,
+        seed,
+        reward,
+    );
+
+    // The seed is in the pool before anyone joins.
+    assert_eq!(client.get_event_prize_pool(&event_id), seed);
+
+    for _ in 0..n {
+        let user = Address::generate(&env);
+        fund(&env, &xlm_token, &user, entry_fee);
+        client.join_event(&user, &invite_code);
+    }
+
+    let expected = seed + (n as i128) * entry_fee;
+    assert_eq!(client.get_event_prize_pool(&event_id), expected);
+    assert_eq!(client.get_event(&event_id).participant_count, n as u32);
+}

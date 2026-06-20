@@ -117,6 +117,7 @@ fn test_get_event_participants_returns_all_participants() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user_one, &invite_code);
     client.join_event(&user_two, &invite_code);
@@ -147,6 +148,7 @@ fn test_get_event_participants_empty_for_new_event() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let participants = client.get_event_participants(&event_id);
@@ -172,6 +174,7 @@ fn test_get_event_participants_updates_as_participants_join() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let initial_participants = client.get_event_participants(&event_id);
@@ -215,6 +218,7 @@ fn test_event_statistics_are_accurate() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user_one, &invite_code);
     client.join_event(&user_two, &invite_code);
@@ -253,6 +257,7 @@ fn test_event_statistics_completion_status() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     env.as_contract(&contract_id, || {
@@ -315,6 +320,7 @@ fn test_get_platform_statistics_all_statistics_accurate() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user1, &invite_code_1);
     client.join_event(&user2, &invite_code_1);
@@ -338,6 +344,7 @@ fn test_get_platform_statistics_all_statistics_accurate() {
         &end_time2,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user1, &invite_code_2);
 
@@ -379,6 +386,7 @@ fn test_get_platform_statistics_counters_increment_correctly() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let after_event = client.get_platform_statistics();
@@ -425,6 +433,7 @@ fn test_get_platform_statistics_unique_participants_calculated() {
         &end_time1,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user1, &invite_code_1);
     client.join_event(&user2, &invite_code_1);
@@ -442,6 +451,7 @@ fn test_get_platform_statistics_unique_participants_calculated() {
         &end_time2,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
     client.join_event(&user1, &invite_code_2);
 
@@ -481,6 +491,7 @@ fn test_get_platform_statistics_fees_accumulated() {
         &end_time1,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     fund(&env, &xlm_token, &creator2, FEE);
@@ -495,6 +506,7 @@ fn test_get_platform_statistics_fees_accumulated() {
         &end_time2,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     fund(&env, &xlm_token, &creator3, FEE);
@@ -509,6 +521,7 @@ fn test_get_platform_statistics_fees_accumulated() {
         &end_time3,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let stats = client.get_platform_statistics();

@@ -53,6 +53,8 @@ pub enum EventError {
     AlreadyFinalized = 18,
     /// Operation rejected because the event has been cancelled.
     EventCancelled = 19,
+    /// entry_fee < 0
+    InvalidEntryFee = 20,
 }
 
 impl From<InviteError> for EventError {
@@ -145,6 +147,7 @@ pub fn create_event(
     end_time: u64,
     prize_pool: i128,
     reward_distribution: Vec<u32>,
+    entry_fee: i128,
 ) -> Result<(u64, Symbol), EventError> {
     creator.require_auth();
 
@@ -184,6 +187,11 @@ pub fn create_event(
 
     // Validate the prize pool and its reward distribution.
     validate_prize_pool(prize_pool, &reward_distribution)?;
+
+    // A negative entry fee is nonsensical; `0` means free to join.
+    if entry_fee < 0 {
+        return Err(EventError::InvalidEntryFee);
+    }
 
     let fee = admin::get_creation_fee(env).unwrap_or_else(|| panic!("not_initialized"));
     let treasury = admin::get_treasury(env).unwrap_or_else(|| panic!("not_initialized"));
@@ -226,6 +234,7 @@ pub fn create_event(
         max_participants,
         prize_pool,
         reward_distribution.clone(),
+        entry_fee,
     );
 
     storage::set_event(env, event_id, &event);

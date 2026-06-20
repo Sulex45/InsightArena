@@ -69,6 +69,7 @@ fn create_event_default(
         &end_time,
         &0i128,
         &Vec::new(env),
+        &0i128,
     )
 }
 

@@ -87,6 +87,7 @@ fn test_treasury_balance_and_withdraw_success() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     // Treasury address should now have the fee
@@ -142,6 +143,7 @@ fn test_withdraw_non_admin_rejected() {
         &end_time,
         &0i128,
         &Vec::new(&env),
+        &0i128,
     );
 
     let non_admin = Address::generate(&env);

@@ -77,6 +77,7 @@ fn create_event_with_match(
         &end_time,
         &0i128,
         &Vec::new(env),
+        &0i128,
     );
 
     let match_id = env.as_contract(contract_id, || {

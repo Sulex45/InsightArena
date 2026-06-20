@@ -264,6 +264,7 @@ impl CreatorEventManagerContract {
     ///   non-empty distribution on an unfunded event).
     /// * `"insufficient_prize_pool_funds"` — creator cannot cover
     ///   `creation_fee + prize_pool`.
+    /// * `"invalid_entry_fee"` — `entry_fee` is negative.
     pub fn create_event(
         env: Env,
         creator: Address,
@@ -274,6 +275,7 @@ impl CreatorEventManagerContract {
         end_time: u64,
         prize_pool: i128,
         reward_distribution: Vec<u32>,
+        entry_fee: i128,
     ) -> (u64, Symbol) {
         match event::create_event(
             &env,
@@ -285,6 +287,7 @@ impl CreatorEventManagerContract {
             end_time,
             prize_pool,
             reward_distribution,
+            entry_fee,
         ) {
             Ok(result) => result,
             Err(EventError::Paused) => panic!("contract_paused"),
@@ -300,6 +303,7 @@ impl CreatorEventManagerContract {
             Err(EventError::InvalidPrizePool) => panic!("invalid_prize_pool"),
             Err(EventError::InvalidRewardDistribution) => panic!("invalid_reward_distribution"),
             Err(EventError::InsufficientPrizePoolFunds) => panic!("insufficient_prize_pool_funds"),
+            Err(EventError::InvalidEntryFee) => panic!("invalid_entry_fee"),
             Err(_) => panic!("unexpected_error"),
         }
     }
@@ -488,6 +492,9 @@ impl CreatorEventManagerContract {
             Err(prediction::PredictionError::EventCancelled) => panic!("event_cancelled"),
             Err(prediction::PredictionError::AlreadyJoined) => panic!("already_joined"),
             Err(prediction::PredictionError::EventFull) => panic!("event_full"),
+            Err(prediction::PredictionError::InsufficientEntryFeeBalance) => {
+                panic!("insufficient_entry_fee_balance")
+            }
             Err(_) => panic!("unexpected_error"),
         }
     }
