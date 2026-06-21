@@ -26,6 +26,9 @@ pub const OUTCOME_DRAW: &str = "DRAW";
 pub const POINTS_CORRECT_RESULT: u32 = 1;
 /// Points awarded for predicting the exact scoreline (in addition to result points)
 pub const POINTS_EXACT_SCORE: u32 = 3;
+/// Maximum allowed points multiplier for a bonus match (inclusive). Caps total
+/// points at 3× to keep cumulative leaderboard scores bounded.
+pub const MAX_POINTS_MULTIPLIER: u32 = 3;
 
 // ---------------------------------------------------------------------------
 // MatchResult
@@ -419,6 +422,11 @@ pub struct Match {
 
     /// Final score for team B (away team)
     pub away_score: Option<u32>,
+
+    /// Points multiplier for this match (1 = normal, 2 = double, 3 = triple).
+    /// Must be in the range 1..=MAX_POINTS_MULTIPLIER. Grading multiplies the
+    /// base points by this value so a 2× final can award 0 / 2 / 8 points.
+    pub points_multiplier: u32,
 }
 
 impl Match {
@@ -429,6 +437,7 @@ impl Match {
         team_a: String,
         team_b: String,
         match_time: u64,
+        points_multiplier: u32,
     ) -> Self {
         Self {
             match_id,
@@ -442,6 +451,7 @@ impl Match {
             submitted_at: None,
             home_score: None,
             away_score: None,
+            points_multiplier,
         }
     }
 
@@ -673,11 +683,11 @@ impl Prediction {
 
     /// Grade this prediction against the actual match result.
     ///
-    /// Awards:
+    /// Awards base points multiplied by `points_multiplier`:
     /// - 0 points if result is wrong
-    /// - 1 point if result is correct but score is wrong
-    /// - 4 points if score is exactly correct (1 for result + 3 for exact score)
-    pub fn grade(&mut self, actual_home: u32, actual_away: u32) {
+    /// - 1 × multiplier if result is correct but score is wrong
+    /// - 4 × multiplier if score is exactly correct (1 for result + 3 for exact score)
+    pub fn grade(&mut self, actual_home: u32, actual_away: u32, points_multiplier: u32) {
         let actual_result = MatchResult::from_scores(actual_home, actual_away);
         let predicted_result =
             MatchResult::from_scores(self.predicted_home_score, self.predicted_away_score);
@@ -687,13 +697,14 @@ impl Prediction {
             self.predicted_home_score == actual_home && self.predicted_away_score == actual_away;
 
         self.is_correct = Some(result_correct);
-        self.points_earned = Some(if exact_correct {
+        let base_points = if exact_correct {
             POINTS_CORRECT_RESULT + POINTS_EXACT_SCORE
         } else if result_correct {
             POINTS_CORRECT_RESULT
         } else {
             0
-        });
+        };
+        self.points_earned = Some(base_points * points_multiplier);
     }
 
     /// `true` if the prediction has been graded and was correct.

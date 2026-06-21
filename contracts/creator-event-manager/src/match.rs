@@ -24,6 +24,8 @@ pub enum MatchError {
     InvalidTeamNames = 5,
     /// Match time is invalid (in the past or outside event window).
     InvalidMatchTime = 6,
+    /// points_multiplier is 0 or exceeds MAX_POINTS_MULTIPLIER (cap: 3).
+    InvalidPointsMultiplier = 7,
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +55,7 @@ pub fn create_match(
     team_a: String,
     team_b: String,
     match_time: u64,
+    points_multiplier: u32,
 ) -> Result<u64, MatchError> {
     // Step 1: Require authorization
     caller.require_auth();
@@ -94,30 +97,35 @@ pub fn create_match(
         return Err(MatchError::InvalidMatchTime);
     }
 
-    // Step 7: Assign a new match_id
+    // Step 7: Validate points_multiplier (must be 1..=MAX_POINTS_MULTIPLIER)
+    if points_multiplier == 0 || points_multiplier > crate::storage_types::MAX_POINTS_MULTIPLIER {
+        return Err(MatchError::InvalidPointsMultiplier);
+    }
+
+    // Step 8: Assign a new match_id
     let match_id = storage::next_match_id(env);
 
-    // Step 8: Build the Match
-    let m = Match::new(match_id, event_id, team_a.clone(), team_b.clone(), match_time);
+    // Step 9: Build the Match
+    let m = Match::new(match_id, event_id, team_a.clone(), team_b.clone(), match_time, points_multiplier);
 
-    // Step 9: Persist the match
+    // Step 10: Persist the match
     storage::set_match(env, match_id, &m);
 
-    // Step 10: Update event and re-persist
+    // Step 11: Update event and re-persist
     let mut updated_event = event;
     updated_event.add_match();
     storage::set_event(env, event_id, &updated_event);
 
-    // Step 11: Index the match
+    // Step 12: Index the match
     storage::add_event_match(env, event_id, match_id);
 
-    // Step 12: Emit event
+    // Step 13: Emit event
     env.events().publish(
         (Symbol::new(env, "match"), Symbol::new(env, "created")),
         (match_id, event_id, team_a, team_b, match_time),
     );
 
-    // Step 13: Return match_id
+    // Step 14: Return match_id
     Ok(match_id)
 }
 

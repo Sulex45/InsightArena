@@ -138,7 +138,7 @@ pub fn submit_match_result(
     let prediction_ids = storage::get_match_predictions(env, match_id);
     for prediction_id in prediction_ids.iter() {
         if let Ok(mut prediction) = storage::get_prediction(env, prediction_id) {
-            prediction.grade(home_score, away_score);
+            prediction.grade(home_score, away_score, match_record.points_multiplier);
             storage::set_prediction(env, prediction_id, &prediction);
         }
     }
@@ -201,11 +201,20 @@ pub fn get_user_score(
             if prediction.is_correct == Some(true) {
                 correct_results = correct_results.checked_add(1).ok_or(OracleError::Overflow)?;
             }
-            // Count exact scores (4 points means exact score achieved)
-            if prediction.points_earned == Some(
-                crate::storage_types::POINTS_CORRECT_RESULT + crate::storage_types::POINTS_EXACT_SCORE,
-            ) {
-                exact_scores = exact_scores.checked_add(1).ok_or(OracleError::Overflow)?;
+            // Count exact scores: load the match to compare actual vs predicted scores.
+            // This is multiplier-agnostic — an exact score is one where both predicted
+            // scores match the actual scores, regardless of the points multiplier.
+            if let Ok(match_record) = storage::get_match(env, prediction.match_id) {
+                if let (Some(actual_home), Some(actual_away)) =
+                    (match_record.home_score, match_record.away_score)
+                {
+                    if prediction.predicted_home_score == actual_home
+                        && prediction.predicted_away_score == actual_away
+                    {
+                        exact_scores =
+                            exact_scores.checked_add(1).ok_or(OracleError::Overflow)?;
+                    }
+                }
             }
         }
     }

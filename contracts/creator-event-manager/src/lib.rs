@@ -409,8 +409,9 @@ impl CreatorEventManagerContract {
 
     /// Create a new match within an event.
     ///
-    /// Only the event's creator can call this. Validates team names and match time,
-    /// then persists the match and emits a ("match", "created") event.
+    /// Only the event's creator can call this. Validates team names, match time,
+    /// and the points multiplier, then persists the match and emits a
+    /// ("match", "created") event.
     ///
     /// Returns the newly assigned `match_id`.
     ///
@@ -421,6 +422,7 @@ impl CreatorEventManagerContract {
     /// * `"unauthorized"` — caller is not the event creator.
     /// * `"invalid_team_names"` — team names are empty, too long, or identical.
     /// * `"invalid_match_time"` — match_time is not in the future.
+    /// * `"invalid_points_multiplier"` — multiplier is 0 or > MAX_POINTS_MULTIPLIER (3).
     pub fn create_match(
         env: Env,
         caller: Address,
@@ -428,8 +430,9 @@ impl CreatorEventManagerContract {
         team_a: String,
         team_b: String,
         match_time: u64,
+        points_multiplier: u32,
     ) -> u64 {
-        match r#match::create_match(&env, caller, event_id, team_a, team_b, match_time) {
+        match r#match::create_match(&env, caller, event_id, team_a, team_b, match_time, points_multiplier) {
             Ok(match_id) => match_id,
             Err(MatchError::Paused) => panic!("paused"),
             Err(MatchError::EventNotFound) => panic!("event_not_found"),
@@ -437,6 +440,7 @@ impl CreatorEventManagerContract {
             Err(MatchError::Unauthorized) => panic!("unauthorized"),
             Err(MatchError::InvalidTeamNames) => panic!("invalid_team_names"),
             Err(MatchError::InvalidMatchTime) => panic!("invalid_match_time"),
+            Err(MatchError::InvalidPointsMultiplier) => panic!("invalid_points_multiplier"),
         }
     }
 
