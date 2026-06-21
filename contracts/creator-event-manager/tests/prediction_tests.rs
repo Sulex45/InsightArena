@@ -84,6 +84,7 @@ fn create_event_and_match(
             String::from_str(env, "Team A"),
             String::from_str(env, "Team B"),
             env.ledger().timestamp() + match_time_offset,
+            1u32,
         );
         storage::set_match(env, match_id, &match_record);
         storage::add_event_match(env, event_id, match_id);
@@ -340,6 +341,7 @@ fn test_get_user_predictions_returns_all_for_event() {
                 String::from_str(&env, "Team A"),
                 String::from_str(&env, "Team B"),
                 env.ledger().timestamp() + 10_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m1);
@@ -354,6 +356,7 @@ fn test_get_user_predictions_returns_all_for_event() {
                 String::from_str(&env, "Team C"),
                 String::from_str(&env, "Team D"),
                 env.ledger().timestamp() + 20_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m2);
@@ -418,6 +421,7 @@ fn test_get_user_predictions_sorted_by_predicted_at() {
                 String::from_str(&env, "Team A"),
                 String::from_str(&env, "Team B"),
                 env.ledger().timestamp() + 50_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m1);
@@ -432,6 +436,7 @@ fn test_get_user_predictions_sorted_by_predicted_at() {
                 String::from_str(&env, "Team C"),
                 String::from_str(&env, "Team D"),
                 env.ledger().timestamp() + 60_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m2);
@@ -587,6 +592,7 @@ fn test_get_prediction_distribution_multiple_matches_independent() {
                 String::from_str(&env, "Team A"),
                 String::from_str(&env, "Team B"),
                 env.ledger().timestamp() + 10_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m1);
@@ -601,6 +607,7 @@ fn test_get_prediction_distribution_multiple_matches_independent() {
                 String::from_str(&env, "Team C"),
                 String::from_str(&env, "Team D"),
                 env.ledger().timestamp() + 20_000,
+                1u32,
             ),
         );
         storage::add_event_match(&env, event_id, m2);

@@ -104,6 +104,7 @@ fn test_get_match_count_returns_correct_count() {
             String::from_str(&env, "Team A"),
             String::from_str(&env, "Team B"),
             env.ledger().timestamp() + 10_000,
+            1u32,
         );
         storage::set_match(&env, match_id, &match_record);
         storage::add_event_match(&env, event_id, match_id);
@@ -144,6 +145,7 @@ fn add_match(
             String::from_str(env, team_a),
             String::from_str(env, team_b),
             match_time,
+            1u32,
         );
         storage::set_match(env, match_id, &match_record);
         storage::add_event_match(env, event_id, match_id);
@@ -274,6 +276,7 @@ fn add_match_full(
             String::from_str(env, team_a),
             String::from_str(env, team_b),
             match_time,
+            1u32,
         );
         storage::set_match(env, match_id, &match_record);
         storage::add_event_match(env, event_id, match_id);
@@ -410,6 +413,7 @@ fn test_add_match_validates_team_names_empty_rejected() {
         String::from_str(&env, ""),
         String::from_str(&env, "Team B"),
         100,
+        1u32,
     );
     assert!(m.validate().is_err());
 
@@ -420,6 +424,7 @@ fn test_add_match_validates_team_names_empty_rejected() {
         String::from_str(&env, "Team A"),
         String::from_str(&env, ""),
         100,
+        1u32,
     );
     assert!(m.validate().is_err());
 }
@@ -428,7 +433,7 @@ fn test_add_match_validates_team_names_empty_rejected() {
 fn test_add_match_validates_team_uniqueness() {
     let env = Env::default();
     let name = String::from_str(&env, "Same Team");
-    let m = Match::new(1, 1, name.clone(), name, 100);
+    let m = Match::new(1, 1, name.clone(), name, 100, 1u32);
     assert!(m.validate().is_err());
 }
 
@@ -443,6 +448,7 @@ fn test_add_match_validates_team_name_length() {
         String::from_bytes(&env, &long_name),
         String::from_str(&env, "Team B"),
         100,
+        1u32,
     );
     assert!(m.validate().is_err());
 
@@ -452,6 +458,7 @@ fn test_add_match_validates_team_name_length() {
         String::from_str(&env, "Team A"),
         String::from_bytes(&env, &long_name),
         100,
+        1u32,
     );
     assert!(m2.validate().is_err());
 }
@@ -466,6 +473,7 @@ fn test_add_match_team_name_length_boundary_ok() {
         String::from_bytes(&env, &exact_name),
         String::from_str(&env, "Team B"),
         100,
+        1u32,
     );
     assert!(m.validate().is_ok());
 }

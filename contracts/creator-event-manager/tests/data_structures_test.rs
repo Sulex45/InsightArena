@@ -37,6 +37,7 @@ fn make_match(env: &Env, match_id: u64, event_id: u64, match_time: u64) -> Match
         String::from_str(env, "Team Alpha"),
         String::from_str(env, "Team Beta"),
         match_time,
+        1u32,
     )
 }
 
@@ -312,6 +313,7 @@ fn test_match_validate_team_a_too_long() {
         String::from_bytes(&env, &long_name),
         String::from_str(&env, "Team B"),
         0,
+        1u32,
     );
     assert_eq!(m.validate(), Err("Team A name exceeds maximum length"));
 }
@@ -326,6 +328,7 @@ fn test_match_validate_team_b_too_long() {
         String::from_str(&env, "Team A"),
         String::from_bytes(&env, &long_name),
         0,
+        1u32,
     );
     assert_eq!(m.validate(), Err("Team B name exceeds maximum length"));
 }
