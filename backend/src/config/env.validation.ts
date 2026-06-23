@@ -65,6 +65,12 @@ class EnvironmentVariables {
   @IsOptional()
   @IsNumber()
   RECONCILE_WINDOW?: number;
+
+  @IsString()
+  EXPORT_DIR: string = './exports';
+
+  @IsNumber()
+  EXPORT_TTL_HOURS: number = 48;
 }
 
 export function validate(config: Record<string, unknown>) {
