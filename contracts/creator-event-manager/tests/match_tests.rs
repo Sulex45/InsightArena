@@ -775,3 +775,49 @@ fn test_add_match_team_time_can_be_in_past() {
     assert_eq!(stored.match_time, past_time);
     assert!(stored.has_started(env.ledger().timestamp()));
 }
+
+// =============================================================================
+// client get_match tests
+// =============================================================================
+
+#[test]
+fn test_get_match_via_client_success() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let match_time = env.ledger().timestamp() + 10_000;
+    let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
+
+    let m = client.get_match(&match_id);
+    assert_eq!(m.match_id, match_id);
+    assert_eq!(m.event_id, event_id);
+    assert_eq!(m.team_a, String::from_str(&env, "Team A"));
+    assert_eq!(m.team_b, String::from_str(&env, "Team B"));
+    assert_eq!(m.match_time, match_time);
+}
+
+#[test]
+#[should_panic(expected = "match_not_found")]
+fn test_get_match_via_client_not_found_panics() {
+    let (_env, client, _contract_id, _admin, _xlm_token) = setup();
+    client.get_match(&99999u64);
+}
+
+#[test]
+fn test_get_match_via_client_extends_ttl() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let match_time = env.ledger().timestamp() + 10_000;
+    let match_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
+
+    let current_ledger = env.ledger().get().sequence_number;
+    env.ledger().set_sequence_number(current_ledger + 1);
+
+    let m = client.get_match(&match_id);
+    assert_eq!(m.match_id, match_id);
+}

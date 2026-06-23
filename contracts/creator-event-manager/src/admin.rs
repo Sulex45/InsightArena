@@ -177,6 +177,40 @@ pub fn initialize(
 }
 
 // ---------------------------------------------------------------------------
+// Update creation fee
+// ---------------------------------------------------------------------------
+
+/// Update the creation fee.
+///
+/// # Errors
+/// * [`AdminError::Unauthorized`] — caller is not the admin.
+/// * [`AdminError::InvalidCreationFee`] — if `new_fee` <= 0.
+///
+/// # Events
+/// Emits `(Symbol("admin"), Symbol("creation_fee_updated"))` with data `new_fee`.
+pub fn update_creation_fee(env: &Env, caller: Address, new_fee: i128) -> Result<(), AdminError> {
+    require_is_admin(env, &caller)?;
+
+    if new_fee <= 0 {
+        return Err(AdminError::InvalidCreationFee);
+    }
+
+    let storage = env.storage().persistent();
+    storage.set(&DataKey::CreationFee(0), &new_fee);
+    storage.extend_ttl(&DataKey::CreationFee(0), TTL_LEDGERS, TTL_LEDGERS);
+
+    env.events().publish(
+        (
+            Symbol::new(env, "admin"),
+            Symbol::new(env, "creation_fee_updated"),
+        ),
+        new_fee,
+    );
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
 // Set treasury (#787)
 // ---------------------------------------------------------------------------
 

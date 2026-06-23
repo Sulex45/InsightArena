@@ -25,10 +25,10 @@ pub enum PredictionError {
     InsufficientEntryFeeBalance = 14,
 }
 
-fn emit_user_joined(env: &Env, event_id: u64, user: &Address, entry_fee_paid: i128) {
+fn emit_user_joined(env: &Env, event_id: u64, user: &Address) {
     env.events().publish(
-        (Symbol::new(env, "event"), Symbol::new(env, "joined")),
-        (event_id, user.clone(), entry_fee_paid),
+        (Symbol::new(env, "participant"), Symbol::new(env, "joined")),
+        (event_id, user.clone()),
     );
 }
 
@@ -138,7 +138,7 @@ pub fn join_event(env: &Env, user: Address, invite_code: Symbol) -> Result<(), P
         .ok_or(PredictionError::Overflow)?;
     storage::set_event(env, event_id, &event);
 
-    emit_user_joined(env, event_id, &user, entry_fee);
+    emit_user_joined(env, event_id, &user);
 
     Ok(())
 }

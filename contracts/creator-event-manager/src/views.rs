@@ -232,3 +232,12 @@ pub fn get_platform_statistics(env: &Env) -> PlatformStatistics {
         total_fees_collected,
     }
 }
+
+/// Check whether a single event has been finalized.
+///
+/// Returns `Ok(bool)` representing the event's `is_finalized` flag.
+/// Returns `Err(EventError::EventNotFound)` if the event ID does not exist.
+pub fn is_event_finalized(env: &Env, event_id: u64) -> Result<bool, EventError> {
+    let event = event::get_event(env, event_id)?;
+    Ok(event.is_finalized)
+}

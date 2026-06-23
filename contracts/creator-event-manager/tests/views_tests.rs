@@ -3,6 +3,7 @@ use creator_event_manager::storage;
 use creator_event_manager::storage_types::{Match, MatchResult, Prediction};
 use creator_event_manager::CreatorEventManagerContractClient;
 use soroban_sdk::testutils::Address as _;
+use soroban_sdk::testutils::Ledger as _;
 use soroban_sdk::token::StellarAssetClient;
 use soroban_sdk::{Address, Env, String, Vec};
 
@@ -528,3 +529,71 @@ fn test_get_platform_statistics_fees_accumulated() {
     let stats = client.get_platform_statistics();
     assert_eq!(stats.total_fees_collected, FEE * 3);
 }
+
+// =============================================================================
+// is_event_finalized tests
+// =============================================================================
+
+#[test]
+fn test_is_event_finalized_states() {
+    let (env, client, _contract_id, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let start_time = get_future_time(&env, 3600);
+    let end_time = get_future_time(&env, 7200);
+    let (event_id, _invite_code) = client.create_event(
+        &creator,
+        &title(&env),
+        &desc(&env),
+        &5u32,
+        &start_time,
+        &end_time,
+        &0i128,
+        &Vec::new(&env),
+        &0i128,
+    );
+
+    // State 1: Active (not finalized)
+    assert!(!client.is_event_finalized(&event_id));
+    assert_eq!(client.is_event_finalized(&event_id), client.get_event(&event_id).is_finalized);
+
+    // State 2: Cancelled (not finalized)
+    client.cancel_event(&creator, &event_id);
+    assert!(!client.is_event_finalized(&event_id));
+    assert_eq!(client.is_event_finalized(&event_id), client.get_event(&event_id).is_finalized);
+
+    // State 3: Finalized
+    let creator2 = Address::generate(&env);
+    fund(&env, &xlm_token, &creator2, FEE);
+    let start_time2 = get_future_time(&env, 3600);
+    let end_time2 = get_future_time(&env, 7200);
+    let (event_id2, _invite_code2) = client.create_event(
+        &creator2,
+        &title(&env),
+        &desc(&env),
+        &5u32,
+        &start_time2,
+        &end_time2,
+        &0i128,
+        &Vec::new(&env),
+        &0i128,
+    );
+
+    // Advance ledger timestamp to end_time2 to allow finalization
+    env.ledger().with_mut(|l| l.timestamp = end_time2 + 10);
+
+    // Finalize the event
+    client.finalize_event(&creator2, &event_id2);
+
+    assert!(client.is_event_finalized(&event_id2));
+    assert_eq!(client.is_event_finalized(&event_id2), client.get_event(&event_id2).is_finalized);
+}
+
+#[test]
+#[should_panic(expected = "event_not_found")]
+fn test_is_event_finalized_not_found() {
+    let (_env, client, _contract_id, _xlm_token) = setup();
+    client.is_event_finalized(&9999u64);
+}
+

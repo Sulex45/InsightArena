@@ -26,6 +26,8 @@ pub enum MatchError {
     InvalidMatchTime = 6,
     /// points_multiplier is 0 or exceeds MAX_POINTS_MULTIPLIER (cap: 3).
     InvalidPointsMultiplier = 7,
+    /// No match found for the given match_id.
+    MatchNotFound = 8,
 }
 
 // ---------------------------------------------------------------------------
@@ -181,4 +183,12 @@ pub fn list_event_matches(env: &Env, event_id: u64) -> Result<Vec<Match>, EventE
     }
 
     Ok(matches)
+}
+
+/// Retrieve a single match by its unique match_id.
+///
+/// Extends the storage TTL on read.
+/// Returns [`MatchError::MatchNotFound`] if the match does not exist.
+pub fn get_match(env: &Env, match_id: u64) -> Result<Match, MatchError> {
+    storage::get_match(env, match_id).map_err(|_| MatchError::MatchNotFound)
 }

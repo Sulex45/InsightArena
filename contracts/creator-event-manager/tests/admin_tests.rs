@@ -474,3 +474,49 @@ fn test_get_ai_agent_returns_initial_agent() {
 
     assert_eq!(client.get_ai_agent(), ai_agent);
 }
+
+// ===========================================================================
+// update_creation_fee tests
+// ===========================================================================
+
+#[test]
+fn test_update_creation_fee_admin_can_update() {
+    let (env, client, _contract_id) = setup();
+    let (admin, ai_agent, treasury, xlm_token) = make_addresses(&env);
+    env.mock_all_auths();
+
+    client.initialize(&admin, &ai_agent, &treasury, &xlm_token, &1_000_000i128);
+    assert_eq!(client.get_creation_fee(), 1_000_000i128);
+
+    let new_fee = 2_000_000i128;
+    client.update_creation_fee(&admin, &new_fee);
+
+    assert_eq!(client.get_creation_fee(), new_fee);
+}
+
+#[test]
+#[should_panic(expected = "unauthorized")]
+fn test_update_creation_fee_non_admin_is_rejected() {
+    let (env, client, _contract_id) = setup();
+    let (admin, ai_agent, treasury, xlm_token) = make_addresses(&env);
+    env.mock_all_auths();
+
+    client.initialize(&admin, &ai_agent, &treasury, &xlm_token, &1_000_000i128);
+
+    let non_admin = Address::generate(&env);
+    let new_fee = 2_000_000i128;
+    client.update_creation_fee(&non_admin, &new_fee);
+}
+
+#[test]
+#[should_panic(expected = "invalid_creation_fee")]
+fn test_update_creation_fee_must_be_strictly_positive() {
+    let (env, client, _contract_id) = setup();
+    let (admin, ai_agent, treasury, xlm_token) = make_addresses(&env);
+    env.mock_all_auths();
+
+    client.initialize(&admin, &ai_agent, &treasury, &xlm_token, &1_000_000i128);
+
+    client.update_creation_fee(&admin, &0i128);
+}
+

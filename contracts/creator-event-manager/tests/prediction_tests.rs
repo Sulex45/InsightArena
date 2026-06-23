@@ -3,6 +3,7 @@ use creator_event_manager::storage;
 use creator_event_manager::CreatorEventManagerContractClient;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
+use soroban_sdk::testutils::Events as _;
 use soroban_sdk::token::{StellarAssetClient, TokenClient};
 use soroban_sdk::{Address, Env, String, Symbol, Vec};
 
@@ -115,6 +116,95 @@ fn test_join_event_valid_code_succeeds() {
     });
     assert_eq!(participants.len(), 1);
 }
+
+#[test]
+fn test_join_event_emits_correct_event() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    let user = Address::generate(&env);
+    let (event_id, invite_code, _) =
+        create_event_and_match(&env, &contract_id, &client, &creator, &xlm_token, 2, 10_000);
+
+    // Join event (successful)
+    client.join_event(&user, &invite_code);
+
+    let events = env.events().all();
+    let mut found = false;
+    let expected_topics = (Symbol::new(&env, "participant"), Symbol::new(&env, "joined"));
+    let expected_data = (event_id, user.clone());
+
+    use soroban_sdk::TryIntoVal;
+
+    for event in events.iter() {
+        if event.0 == contract_id && event.1.len() == 2 {
+            let topic0: Result<Symbol, _> = event.1.get(0).unwrap().try_into_val(&env);
+            let topic1: Result<Symbol, _> = event.1.get(1).unwrap().try_into_val(&env);
+            if let (Ok(t0), Ok(t1)) = (topic0, topic1) {
+                if t0 == Symbol::new(&env, "participant") && t1 == Symbol::new(&env, "joined") {
+                    let actual_data: Result<(u64, Address), _> = event.2.try_into_val(&env);
+                    if let Ok(actual_data) = actual_data {
+                        if actual_data == expected_data {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    assert!(found, "Expected ('participant', 'joined') event not found");
+}
+
+#[test]
+fn test_join_event_failed_does_not_emit_event() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    let user = Address::generate(&env);
+    let (_event_id, _invite_code, _) =
+        create_event_and_match(&env, &contract_id, &client, &creator, &xlm_token, 2, 10_000);
+
+    // Join with invalid code (will fail / panic)
+    let bad_code = Symbol::new(&env, "ZZZZZZZZ");
+
+    use soroban_sdk::TryIntoVal;
+
+    let events_before = env.events().all();
+    let num_participant_joined_before = events_before.iter().filter(|event| {
+        if event.0 != contract_id || event.1.len() != 2 {
+            return false;
+        }
+        let topic0: Result<Symbol, _> = event.1.get(0).unwrap().try_into_val(&env);
+        let topic1: Result<Symbol, _> = event.1.get(1).unwrap().try_into_val(&env);
+        if let (Ok(t0), Ok(t1)) = (topic0, topic1) {
+            t0 == Symbol::new(&env, "participant") && t1 == Symbol::new(&env, "joined")
+        } else {
+            false
+        }
+    }).count();
+
+    // Call join_event expecting panic
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        client.join_event(&user, &bad_code);
+    }));
+    assert!(result.is_err());
+
+    let events_after = env.events().all();
+    let num_participant_joined_after = events_after.iter().filter(|event| {
+        if event.0 != contract_id || event.1.len() != 2 {
+            return false;
+        }
+        let topic0: Result<Symbol, _> = event.1.get(0).unwrap().try_into_val(&env);
+        let topic1: Result<Symbol, _> = event.1.get(1).unwrap().try_into_val(&env);
+        if let (Ok(t0), Ok(t1)) = (topic0, topic1) {
+            t0 == Symbol::new(&env, "participant") && t1 == Symbol::new(&env, "joined")
+        } else {
+            false
+        }
+    }).count();
+
+    assert_eq!(num_participant_joined_before, num_participant_joined_after, "Failed join should not emit event");
+}
+
 
 #[test]
 #[should_panic(expected = "invalid_invite_code")]

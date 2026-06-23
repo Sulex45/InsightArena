@@ -78,6 +78,22 @@ impl CreatorEventManagerContract {
         }
     }
 
+    /// Update the creation fee.
+    ///
+    /// Only the admin may call this.
+    ///
+    /// # Panics
+    /// * `"unauthorized"` — caller is not the admin.
+    /// * `"invalid_creation_fee"` — `new_fee` <= 0.
+    pub fn update_creation_fee(env: Env, caller: Address, new_fee: i128) {
+        match admin::update_creation_fee(&env, caller, new_fee) {
+            Ok(()) => {}
+            Err(AdminError::Unauthorized) => panic!("unauthorized"),
+            Err(AdminError::InvalidCreationFee) => panic!("invalid_creation_fee"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
     /// Update the treasury address where collected fees are sent.
     ///
     /// Only the admin may call this. `new_treasury` must not be the contract itself.
@@ -462,6 +478,7 @@ impl CreatorEventManagerContract {
             Err(MatchError::InvalidTeamNames) => panic!("invalid_team_names"),
             Err(MatchError::InvalidMatchTime) => panic!("invalid_match_time"),
             Err(MatchError::InvalidPointsMultiplier) => panic!("invalid_points_multiplier"),
+            Err(MatchError::MatchNotFound) => panic!("match_not_found"),
         }
     }
 
@@ -477,6 +494,20 @@ impl CreatorEventManagerContract {
         match r#match::list_event_matches(&env, event_id) {
             Ok(matches) => matches,
             Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
+    }
+
+    /// Retrieve a single match by its ID.
+    ///
+    /// Extends the entry TTL on each read.
+    ///
+    /// # Panics
+    /// * `"match_not_found"` — no match exists with the given ID.
+    pub fn get_match(env: Env, match_id: u64) -> Match {
+        match r#match::get_match(&env, match_id) {
+            Ok(m) => m,
+            Err(MatchError::MatchNotFound) => panic!("match_not_found"),
             Err(_) => panic!("unexpected_error"),
         }
     }
@@ -713,6 +744,18 @@ impl CreatorEventManagerContract {
     /// an empty vector if the event has not been finalized (or does not exist).
     pub fn get_event_payouts(env: Env, event_id: u64) -> Vec<(Address, i128)> {
         finalize::get_event_payouts(&env, event_id)
+    }
+
+    /// Check whether an event is finalized.
+    ///
+    /// # Panics
+    /// * `"event_not_found"` — if no event exists with the given ID.
+    pub fn is_event_finalized(env: Env, event_id: u64) -> bool {
+        match views::is_event_finalized(&env, event_id) {
+            Ok(finalized) => finalized,
+            Err(EventError::EventNotFound) => panic!("event_not_found"),
+            Err(_) => panic!("unexpected_error"),
+        }
     }
 
     /// Get platform-wide statistics.
