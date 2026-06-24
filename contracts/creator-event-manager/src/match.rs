@@ -146,7 +146,7 @@ pub fn get_match_count(env: &Env, event_id: u64) -> Result<u32, EventError> {
 /// and returns them in chronological order (earliest match first).
 ///
 /// # Sorting behaviour
-/// Results are sorted by `match_time` ascending using an insertion sort.
+/// Results are sorted by `match_time` ascending, then `match_id` ascending, using an insertion sort.
 /// Matches are appended in creation order, which may differ from schedule
 /// order; the explicit sort guarantees correct ordering regardless.
 ///
@@ -172,7 +172,9 @@ pub fn list_event_matches(env: &Env, event_id: u64) -> Result<Vec<Match>, EventE
         while j > 0 {
             let prev = matches.get(j - 1).unwrap();
             let curr = matches.get(j).unwrap();
-            if prev.match_time > curr.match_time {
+            if prev.match_time > curr.match_time
+                || (prev.match_time == curr.match_time && prev.match_id > curr.match_id)
+            {
                 matches.set(j - 1, curr);
                 matches.set(j, prev);
                 j -= 1;

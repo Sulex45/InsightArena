@@ -8,6 +8,8 @@ pub enum DataKey {
     /// Keyed by market_id. Stores the ordered list of all predictor addresses for that market.
     /// Updated whenever a new prediction is submitted so cancel_market can iterate all stakers.
     PredictorList(u64),
+    /// Keyed by user address. Stores market IDs the user has staked in.
+    UserMarkets(Address),
     /// Keyed by (market_id, predictor). Represents a user's prediction in a given market.
     Prediction(u64, Address),
     /// Keyed by user address. Represents an individual user's profile or state.

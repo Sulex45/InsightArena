@@ -274,6 +274,11 @@ impl InsightArenaContract {
         prediction::list_market_predictions(&env, market_id)
     }
 
+    /// Return market IDs that `user` has staked in.
+    pub fn list_user_markets(env: Env, user: Address) -> Vec<u64> {
+        market::list_user_markets(env, user)
+    }
+
     /// Claim a resolved-market payout for `predictor`.
     pub fn claim_payout(
         env: Env,

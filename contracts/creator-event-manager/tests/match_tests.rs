@@ -1,6 +1,6 @@
 /// Tests for match management functions: add_match, get_match, list_event_matches, get_match_count.
 use creator_event_manager::storage;
-use creator_event_manager::storage_types::{Match, MatchResult};
+use creator_event_manager::storage_types::{DataKey, Match, MatchResult};
 use creator_event_manager::CreatorEventManagerContractClient;
 use soroban_sdk::testutils::Address as _;
 use soroban_sdk::testutils::Ledger as _;
@@ -820,4 +820,37 @@ fn test_get_match_via_client_extends_ttl() {
 
     let m = client.get_match(&match_id);
     assert_eq!(m.match_id, match_id);
+}
+
+#[test]
+fn test_list_event_matches_sorts_same_time_by_match_id_deterministically() {
+    let (env, client, contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let match_time = env.ledger().timestamp() + 10_000;
+
+    let first_id = add_match_full(&env, &contract_id, event_id, "Team A", "Team B", match_time);
+    let second_id = add_match_full(&env, &contract_id, event_id, "Team C", "Team D", match_time);
+    let third_id = add_match_full(&env, &contract_id, event_id, "Team E", "Team F", match_time);
+
+    env.as_contract(&contract_id, || {
+        env.storage().persistent().set(
+            &DataKey::EventMatches(event_id),
+            &soroban_sdk::vec![&env, third_id, second_id, first_id],
+        );
+    });
+
+    let first_call = client.list_event_matches(&event_id);
+    let second_call = client.list_event_matches(&event_id);
+
+    assert_eq!(first_call.len(), 3);
+    assert_eq!(first_call.get(0).unwrap().match_id, first_id);
+    assert_eq!(first_call.get(1).unwrap().match_id, second_id);
+    assert_eq!(first_call.get(2).unwrap().match_id, third_id);
+
+    assert_eq!(second_call.get(0).unwrap().match_id, first_id);
+    assert_eq!(second_call.get(1).unwrap().match_id, second_id);
+    assert_eq!(second_call.get(2).unwrap().match_id, third_id);
 }

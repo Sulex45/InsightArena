@@ -25,6 +25,14 @@ fn bump_predictor_list(env: &Env, market_id: u64) {
     );
 }
 
+fn bump_user_markets(env: &Env, user: &Address) {
+    env.storage().persistent().extend_ttl(
+        &DataKey::UserMarkets(user.clone()),
+        PERSISTENT_THRESHOLD,
+        PERSISTENT_BUMP,
+    );
+}
+
 fn bump_user(env: &Env, address: &Address) {
     config::extend_user_ttl(env, address);
 }
@@ -261,6 +269,21 @@ pub fn submit_prediction(
     predictors.push_back(predictor.clone());
     env.storage().persistent().set(&list_key, &predictors);
     bump_predictor_list(env, market_id);
+
+    // ── Append market to reverse user index ──────────────────────────────────
+    let user_markets_key = DataKey::UserMarkets(predictor.clone());
+    let mut user_markets: Vec<u64> = env
+        .storage()
+        .persistent()
+        .get(&user_markets_key)
+        .unwrap_or_else(|| Vec::new(env));
+    if !user_markets.contains(market_id) {
+        user_markets.push_back(market_id);
+        env.storage()
+            .persistent()
+            .set(&user_markets_key, &user_markets);
+    }
+    bump_user_markets(env, &predictor);
 
     // ── Update market total_pool and participant_count atomically ─────────────
     market.total_pool = market

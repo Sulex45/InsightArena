@@ -1100,3 +1100,24 @@ pub fn get_platform_stats(env: Env) -> PlatformStats {
         treasury_balance,
     }
 }
+
+/// Return market IDs that `user` has staked in.
+///
+/// The reverse index is maintained when predictions are submitted and avoids
+/// scanning all markets to discover a user's participation history.
+pub fn list_user_markets(env: Env, user: Address) -> Vec<u64> {
+    let key = DataKey::UserMarkets(user.clone());
+    let markets = env
+        .storage()
+        .persistent()
+        .get(&key)
+        .unwrap_or_else(|| Vec::new(&env));
+
+    if env.storage().persistent().has(&key) {
+        env.storage()
+            .persistent()
+            .extend_ttl(&key, PERSISTENT_THRESHOLD, PERSISTENT_BUMP);
+    }
+
+    markets
+}

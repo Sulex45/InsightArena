@@ -1,8 +1,10 @@
-use soroban_sdk::testutils::{Address as _, Ledger};
+use soroban_sdk::testutils::{storage::Persistent as _, Address as _, Ledger};
 use soroban_sdk::token::StellarAssetClient;
 use soroban_sdk::{symbol_short, vec, Address, Env, String, Symbol};
 
+use insightarena_contract::config::LEDGER_BUMP_MARKET;
 use insightarena_contract::market::CreateMarketParams;
+use insightarena_contract::storage_types::DataKey;
 use insightarena_contract::{InsightArenaContract, InsightArenaContractClient, InsightArenaError};
 
 // ── Test helpers ──────────────────────────────────────────────────────────
@@ -479,4 +481,69 @@ fn test_payout_math_single_winner_takes_all() {
 
     let payout = client.claim_payout(&p1, &market_id);
     assert_eq!(payout, 194_000_000);
+}
+
+#[test]
+fn test_list_user_markets_empty_for_new_user() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _xlm_token, _, _) = deploy(&env);
+    let user = Address::generate(&env);
+
+    let markets = client.list_user_markets(&user);
+    assert_eq!(markets.len(), 0);
+}
+
+#[test]
+fn test_list_user_markets_returns_markets_user_staked_in() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, xlm_token, _, _) = deploy(&env);
+    let creator = Address::generate(&env);
+    let predictor = Address::generate(&env);
+    let other = Address::generate(&env);
+    let stake = 20_000_000_i128;
+
+    let market_one = client.create_market(&creator, &default_params(&env));
+    let market_two = client.create_market(&creator, &default_params(&env));
+    let market_three = client.create_market(&creator, &default_params(&env));
+
+    fund(&env, &xlm_token, &predictor, stake * 2);
+    fund(&env, &xlm_token, &other, stake);
+
+    client.submit_prediction(&predictor, &market_two, &symbol_short!("yes"), &stake);
+    client.submit_prediction(&predictor, &market_one, &symbol_short!("no"), &stake);
+    client.submit_prediction(&other, &market_three, &symbol_short!("yes"), &stake);
+
+    let markets = client.list_user_markets(&predictor);
+    assert_eq!(markets.len(), 2);
+    assert_eq!(markets.get(0).unwrap(), market_two);
+    assert_eq!(markets.get(1).unwrap(), market_one);
+
+    let other_markets = client.list_user_markets(&other);
+    assert_eq!(other_markets.len(), 1);
+    assert_eq!(other_markets.get(0).unwrap(), market_three);
+}
+
+#[test]
+fn test_list_user_markets_ttl_extended_on_write() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, xlm_token, _, _) = deploy(&env);
+    let creator = Address::generate(&env);
+    let predictor = Address::generate(&env);
+    let stake = 20_000_000_i128;
+
+    let market_id = client.create_market(&creator, &default_params(&env));
+    fund(&env, &xlm_token, &predictor, stake);
+
+    client.submit_prediction(&predictor, &market_id, &symbol_short!("yes"), &stake);
+
+    let ttl = env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .get_ttl(&DataKey::UserMarkets(predictor.clone()))
+    });
+
+    assert!(ttl >= LEDGER_BUMP_MARKET - 14_400);
 }
