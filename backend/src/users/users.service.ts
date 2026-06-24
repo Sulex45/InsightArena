@@ -109,14 +109,21 @@ export class UsersService {
       .skip(skip)
       .take(limit);
 
+    if (dto.outcome === PublicPredictionOutcomeFilter.Correct) {
+      qb.andWhere('prediction.chosen_outcome = market.resolved_outcome');
+    } else if (dto.outcome === PublicPredictionOutcomeFilter.Incorrect) {
+      qb.andWhere('market.resolved_outcome IS NOT NULL').andWhere(
+        'prediction.chosen_outcome != market.resolved_outcome',
+      );
+    } else if (dto.outcome === PublicPredictionOutcomeFilter.Pending) {
+      qb.andWhere('market.resolved_outcome IS NULL');
+    }
+
     const [predictions, total] = await qb.getManyAndCount();
 
-    const data = predictions
-      .map((prediction) => this.mapPublicPrediction(prediction))
-      .filter((prediction) => {
-        if (!dto.outcome) return true;
-        return prediction.outcome === dto.outcome;
-      });
+    const data = predictions.map((prediction) =>
+      this.mapPublicPrediction(prediction),
+    );
 
     return { data, total, page, limit };
   }

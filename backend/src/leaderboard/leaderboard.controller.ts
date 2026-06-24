@@ -1,8 +1,15 @@
 import { Controller, Get, Query, Param } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { LeaderboardService } from './leaderboard.service';
 import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
+import { LeaderboardService } from './leaderboard.service';
+import type {
   LeaderboardQueryDto,
+  LeaderboardEntryResponse,
   PaginatedLeaderboardResponse,
 } from './dto/leaderboard-query.dto';
 import {
@@ -89,6 +96,29 @@ export class LeaderboardController {
       );
     }
     return this.leaderboardService.getHistory(query);
+  }
+
+  @Get('top/:n')
+  @Public()
+  @ApiOperation({
+    summary:
+      'Get top N leaderboard entries for the current active season (lightweight shortcut)',
+  })
+  @ApiParam({
+    name: 'n',
+    description: 'Number of entries to return (max 20)',
+    type: Number,
+  })
+  @ApiQuery({ name: 'season_id', required: false, type: String })
+  @ApiResponse({
+    status: 200,
+    description: 'Top N leaderboard entries, served from cache when available',
+  })
+  async getTopN(
+    @Param('n') n: number,
+    @Query('season_id') seasonId?: string,
+  ): Promise<LeaderboardEntryResponse[]> {
+    return this.leaderboardService.getTopN(n, seasonId);
   }
 
   @Get(':address')

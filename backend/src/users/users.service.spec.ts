@@ -209,6 +209,38 @@ describe('UsersService', () => {
   });
 
   describe('findPublicPredictionsByAddress', () => {
+    it('should push outcome filter to SQL when outcome is set', async () => {
+      jest.spyOn(repository, 'findOneBy').mockResolvedValue(mockUser);
+
+      const queryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 2]),
+      };
+
+      jest
+        .spyOn(predictionsRepository, 'createQueryBuilder')
+        .mockReturnValue(
+          queryBuilder as any as ReturnType<
+            typeof predictionsRepository.createQueryBuilder
+          >,
+        );
+
+      await service.findPublicPredictionsByAddress(mockUser.stellar_address, {
+        outcome: 'correct',
+        page: 1,
+        limit: 20,
+      } as any);
+
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'prediction.chosen_outcome = market.resolved_outcome',
+      );
+    });
+
     it('should return only resolved-market predictions with outcome mapping', async () => {
       jest.spyOn(repository, 'findOneBy').mockResolvedValue(mockUser);
 

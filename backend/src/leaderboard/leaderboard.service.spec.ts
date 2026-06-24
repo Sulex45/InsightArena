@@ -61,6 +61,7 @@ describe('LeaderboardService', () => {
 
   const mockUsersService = {
     findAll: jest.fn(),
+    findByAddress: jest.fn(),
   };
 
   const mockDataSource = {
@@ -199,6 +200,52 @@ describe('LeaderboardService', () => {
 
       expect(mockUsersService.findAll).toHaveBeenCalled();
       expect(mockDataSource.transaction).toHaveBeenCalled();
+    });
+  });
+
+  describe('getTopN', () => {
+    it('should return top N entries and cap at 20', async () => {
+      const entries = Array.from({ length: 20 }, (_, i) => ({
+        ...mockEntry,
+        rank: i + 1,
+      }));
+      mockQb.getMany.mockResolvedValue(entries);
+      mockCacheManager.get.mockResolvedValue(null);
+
+      const result = await service.getTopN(25);
+
+      expect(result).toHaveLength(20);
+      expect(result[0].rank).toBe(1);
+      expect(result[19].rank).toBe(20);
+      expect(mockQb.take).toHaveBeenCalledWith(20);
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'leaderboard:top:20:all',
+        expect.any(Array),
+        expect.any(Number),
+      );
+    });
+
+    it('should return cache hit without DB query', async () => {
+      const cached = [{ rank: 1 }] as any[];
+      mockCacheManager.get.mockResolvedValue(cached);
+
+      const result = await service.getTopN(5);
+
+      expect(result).toBe(cached);
+      expect(mockEntryRepository.createQueryBuilder).not.toHaveBeenCalled();
+    });
+
+    it('should filter by season_id when provided', async () => {
+      const entries = [{ ...mockEntry, rank: 1 }];
+      mockQb.getMany.mockResolvedValue(entries);
+      mockCacheManager.get.mockResolvedValue(null);
+
+      const result = await service.getTopN(5, 'season-1');
+
+      expect(result).toHaveLength(1);
+      expect(mockQb.where).toHaveBeenCalledWith('entry.season_id = :seasonId', {
+        seasonId: 'season-1',
+      });
     });
   });
 

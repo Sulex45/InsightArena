@@ -14,15 +14,32 @@ import { ActivityLog } from './entities/activity-log.entity';
 import { MarketHistory } from './entities/market-history.entity';
 
 describe('predictorTierFromReputation', () => {
-  it('maps thresholds to tier labels', () => {
+  it('maps 0 to Bronze Predictor', () => {
     expect(predictorTierFromReputation(0)).toBe('Bronze Predictor');
+  });
+
+  it('maps 199 to Bronze Predictor', () => {
     expect(predictorTierFromReputation(199)).toBe('Bronze Predictor');
+  });
+
+  it('maps 200 to Silver Predictor', () => {
     expect(predictorTierFromReputation(200)).toBe('Silver Predictor');
+  });
+
+  it('maps 499 to Silver Predictor', () => {
     expect(predictorTierFromReputation(499)).toBe('Silver Predictor');
+  });
+
+  it('maps 500 to Gold Predictor', () => {
     expect(predictorTierFromReputation(500)).toBe('Gold Predictor');
+  });
+
+  it('maps 999 to Gold Predictor', () => {
     expect(predictorTierFromReputation(999)).toBe('Gold Predictor');
+  });
+
+  it('maps 1000 to Platinum Predictor', () => {
     expect(predictorTierFromReputation(1000)).toBe('Platinum Predictor');
-    expect(predictorTierFromReputation(840)).toBe('Gold Predictor');
   });
 });
 

@@ -201,6 +201,70 @@ export class LeaderboardService {
   }
 
   /**
+   * Get top N entries for current season or all-time, lightweight shortcut
+   * Capped at 20, served from cache when available for the first page
+   */
+  async getTopN(
+    n: number,
+    seasonId?: string,
+  ): Promise<LeaderboardEntryResponse[]> {
+    const limit = Math.min(n, 20);
+    const cacheKey = CACHE_WARMING_KEYS.leaderboardTopN(
+      limit,
+      seasonId ?? null,
+    );
+
+    const cached =
+      await this.cacheManager.get<LeaderboardEntryResponse[]>(cacheKey);
+    if (cached) {
+      this.logger.debug(`Cache hit for top ${limit}: ${cacheKey}`);
+      return cached;
+    }
+
+    const qb = this.leaderboardRepository
+      .createQueryBuilder('entry')
+      .leftJoinAndSelect('entry.user', 'user');
+
+    if (seasonId) {
+      qb.where('entry.season_id = :seasonId', { seasonId });
+      qb.orderBy('entry.season_points', 'DESC');
+    } else {
+      qb.where('entry.season_id IS NULL');
+      qb.orderBy('entry.reputation_score', 'DESC');
+    }
+
+    qb.addOrderBy('entry.rank', 'ASC').take(limit);
+
+    const entries = await qb.getMany();
+
+    const data = entries.map((entry) => {
+      const accuracyRate =
+        entry.total_predictions > 0
+          ? (
+              (entry.correct_predictions / entry.total_predictions) *
+              100
+            ).toFixed(1)
+          : '0.0';
+
+      return {
+        rank: entry.rank,
+        user_id: entry.user_id,
+        username: entry.user?.username ?? null,
+        stellar_address: entry.user?.stellar_address ?? '',
+        reputation_score: entry.reputation_score,
+        accuracy_rate: accuracyRate,
+        total_winnings_stroops: entry.total_winnings_stroops,
+        season_points: entry.season_points,
+      };
+    });
+
+    await this.cacheManager.set(cacheKey, data, this.CACHE_TTL_MS);
+    this.logger.debug(`Cached top ${limit} leaderboard: ${cacheKey}`);
+
+    return data;
+  }
+
+  /**
    * Invalidate all cached leaderboard cursor pages for a season
    */
   private async invalidateLeaderboardCache(seasonId?: string): Promise<void> {
