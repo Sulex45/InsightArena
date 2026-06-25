@@ -10,6 +10,7 @@ import { Repository, ObjectLiteral } from 'typeorm';
 import { PredictionsService } from './predictions.service';
 import { Prediction } from './entities/prediction.entity';
 import { Market } from '../markets/entities/market.entity';
+import { PredictionStatus } from './dto/list-my-predictions.dto';
 import { User } from '../users/entities/user.entity';
 import { SorobanService } from '../soroban/soroban.service';
 

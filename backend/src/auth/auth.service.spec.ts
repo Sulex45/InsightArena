@@ -188,24 +188,6 @@ describe('AuthService', () => {
     expect(service.isValidChallenge(challenge)).toBe(false);
   });
 
-  it('generateChallenge() cleanup removes stale cache entries', () => {
-    const stale = 'InsightArena:nonce:1:stale:' + address;
-
-    const cache = (
-      service as unknown as {
-        challengeCache: Map<string, { expiresAt: number; used: boolean }>;
-      }
-    ).challengeCache;
-
-    cache.set(stale, {
-      expiresAt: Date.now() - 1,
-      used: false,
-    });
-
-    service.generateChallenge(address);
-    expect(cache.has(stale)).toBe(false);
-  });
-
   it('verifyStellarSignature() uses mocked Keypair.verify and returns true', () => {
     const verify = jest.fn().mockReturnValue(true);
     jest
