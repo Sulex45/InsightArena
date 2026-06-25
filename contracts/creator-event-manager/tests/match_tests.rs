@@ -854,3 +854,73 @@ fn test_list_event_matches_sorts_same_time_by_match_id_deterministically() {
     assert_eq!(second_call.get(1).unwrap().match_id, second_id);
     assert_eq!(second_call.get(2).unwrap().match_id, third_id);
 }
+
+// =============================================================================
+// create_match — match_time outside event window (#1016)
+// =============================================================================
+
+#[test]
+#[should_panic(expected = "invalid_match_time")]
+fn test_create_match_rejects_match_time_at_end_time() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let event = env.as_contract(&_contract_id, || {
+        creator_event_manager::storage::get_event(&env, event_id).unwrap()
+    });
+
+    client.create_match(
+        &creator,
+        &event_id,
+        &String::from_str(&env, "Team A"),
+        &String::from_str(&env, "Team B"),
+        &event.end_time,
+        &1u32,
+    );
+}
+
+#[test]
+#[should_panic(expected = "invalid_match_time")]
+fn test_create_match_rejects_match_time_after_end_time() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let event = env.as_contract(&_contract_id, || {
+        creator_event_manager::storage::get_event(&env, event_id).unwrap()
+    });
+
+    client.create_match(
+        &creator,
+        &event_id,
+        &String::from_str(&env, "Team A"),
+        &String::from_str(&env, "Team B"),
+        &(event.end_time + 1),
+        &1u32,
+    );
+}
+
+#[test]
+fn test_create_match_accepts_match_time_before_end_time() {
+    let (env, client, _contract_id, _admin, xlm_token) = setup();
+    let creator = Address::generate(&env);
+    fund(&env, &xlm_token, &creator, FEE);
+
+    let (event_id, _) = create_event_default(&client, &env, &creator, 5u32);
+    let event = env.as_contract(&_contract_id, || {
+        creator_event_manager::storage::get_event(&env, event_id).unwrap()
+    });
+
+    let match_id = client.create_match(
+        &creator,
+        &event_id,
+        &String::from_str(&env, "Team A"),
+        &String::from_str(&env, "Team B"),
+        &(event.end_time - 60),
+        &1u32,
+    );
+    assert!(match_id > 0);
+}

@@ -2,7 +2,8 @@
 ///
 /// Covers: verify_address, batch_verify_addresses, unverify_address, is_verified.
 use creator_event_manager::CreatorEventManagerContractClient;
-use soroban_sdk::{testutils::Address as _, Address, Env, Vec};
+use soroban_sdk::testutils::Address as _;
+use soroban_sdk::{Address, Env, Vec};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -233,6 +234,30 @@ fn test_unverify_address_can_reverify_after_unverify() {
     // Should succeed now that the address is no longer verified
     client.verify_address(&admin, &user);
     assert!(client.is_verified(&user));
+}
+
+#[test]
+#[should_panic(expected = "invalid_address")]
+fn test_unverify_address_contract_self_is_rejected() {
+    let (env, client, contract_id, admin) = setup_initialized();
+    let _ = &env;
+    client.unverify_address(&admin, &contract_id);
+}
+
+#[test]
+#[should_panic(expected = "not_verified")]
+fn test_unverify_address_repeated_unverify_returns_not_verified() {
+    let (env, client, _contract_id, admin) = setup_initialized();
+
+    let user = Address::generate(&env);
+    client.verify_address(&admin, &user);
+    assert!(client.is_verified(&user));
+
+    // First unverify succeeds.
+    client.unverify_address(&admin, &user);
+
+    // Second unverify must panic with not_verified.
+    client.unverify_address(&admin, &user);
 }
 
 // ===========================================================================

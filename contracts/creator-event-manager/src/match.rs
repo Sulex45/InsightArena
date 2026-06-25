@@ -93,9 +93,12 @@ pub fn create_match(
         return Err(MatchError::InvalidTeamNames);
     }
 
-    // Step 6: Validate match_time is in the future
+    // Step 6: Validate match_time is in the future and within the event window
     let current_time = env.ledger().timestamp();
     if match_time <= current_time {
+        return Err(MatchError::InvalidMatchTime);
+    }
+    if match_time >= event.end_time {
         return Err(MatchError::InvalidMatchTime);
     }
 
@@ -108,7 +111,14 @@ pub fn create_match(
     let match_id = storage::next_match_id(env);
 
     // Step 9: Build the Match
-    let m = Match::new(match_id, event_id, team_a.clone(), team_b.clone(), match_time, points_multiplier);
+    let m = Match::new(
+        match_id,
+        event_id,
+        team_a.clone(),
+        team_b.clone(),
+        match_time,
+        points_multiplier,
+    );
 
     // Step 10: Persist the match
     storage::set_match(env, match_id, &m);

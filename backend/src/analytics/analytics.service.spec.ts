@@ -320,4 +320,36 @@ describe('AnalyticsService', () => {
       );
     });
   });
+
+  describe('getDashboardKPIs active predictions count', () => {
+    it('All active test: mock the QB to return 3 predictions on open markets -> active_predictions_count = 3', async () => {
+      usersRepository.findOne.mockResolvedValue(baseUser);
+      leaderboardRepository.createQueryBuilder.mockReturnValue(
+        mockLeaderboardQb(null) as any,
+      );
+      const qb = mockQb({ getCount: 3 });
+      predictionsRepository.createQueryBuilder.mockReturnValue(qb as any);
+
+      const res = await service.getDashboardKPIs(baseUser);
+
+      expect(res.active_predictions_count).toBe(3);
+      expect(qb.andWhere).toHaveBeenCalledWith('market.is_resolved = false');
+      expect(qb.andWhere).toHaveBeenCalledWith('market.is_cancelled = false');
+    });
+
+    it('Mix test: 2 open, 1 resolved, 1 cancelled -> active_predictions_count = 2', async () => {
+      usersRepository.findOne.mockResolvedValue(baseUser);
+      leaderboardRepository.createQueryBuilder.mockReturnValue(
+        mockLeaderboardQb(null) as any,
+      );
+      const qb = mockQb({ getCount: 2 });
+      predictionsRepository.createQueryBuilder.mockReturnValue(qb as any);
+
+      const res = await service.getDashboardKPIs(baseUser);
+
+      expect(res.active_predictions_count).toBe(2);
+      expect(qb.andWhere).toHaveBeenCalledWith('market.is_resolved = false');
+      expect(qb.andWhere).toHaveBeenCalledWith('market.is_cancelled = false');
+    });
+  });
 });

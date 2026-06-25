@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import {
@@ -43,7 +44,7 @@ export class CompetitionsService {
   async create(dto: CreateCompetitionDto, user: User): Promise<Competition> {
     const inviteCode =
       dto.visibility === CompetitionVisibility.Private
-        ? Math.random().toString(36).slice(2, 8).toUpperCase()
+        ? crypto.randomBytes(3).toString('hex').toUpperCase()
         : null;
 
     const competition = this.competitionsRepository.create({

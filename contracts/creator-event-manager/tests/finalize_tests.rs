@@ -387,6 +387,66 @@ fn test_finalize_event_zero_participants_refunds_full_pool() {
     assert!(client.get_event(&event_id).is_finalized);
 }
 
+// ---------------------------------------------------------------------------
+// Dust refund
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_finalize_event_integer_division_dust_refunded_to_creator() {
+    let (env, client, contract_id, creator, ai_agent, xlm_token) = setup();
+
+    // An odd prize pool ensures integer-division remainder (dust).
+    let prize_pool: i128 = 1_000_000_001;
+    let dist = reward_dist(&env, &[60, 40]);
+    let (event_id, invite_code, match_ids) = create_funded_event(
+        &env,
+        &contract_id,
+        &client,
+        &creator,
+        &xlm_token,
+        prize_pool,
+        dist,
+        1,
+    );
+
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+
+    client.join_event(&user1, &invite_code);
+    client.submit_prediction(&user1, &match_ids.get(0).unwrap(), &1u32, &0u32);
+    client.join_event(&user2, &invite_code);
+    client.submit_prediction(&user2, &match_ids.get(0).unwrap(), &0u32, &1u32);
+
+    env.ledger().set_timestamp(env.ledger().timestamp() + 7300);
+    submit_result(&client, &ai_agent, match_ids.get(0).unwrap(), MatchResult::TeamA);
+
+    let creator_balance_before = balance(&env, &xlm_token, &creator);
+
+    let caller = Address::generate(&env);
+    let payouts = client.finalize_event(&caller, &event_id);
+
+    let expected_rank1 = prize_pool * 60 / 100; // 600_000_000
+    let expected_rank2 = prize_pool * 40 / 100; // 400_000_000
+    let expected_dust = prize_pool - expected_rank1 - expected_rank2; // 1
+
+    assert_eq!(payouts.len(), 2);
+    assert_eq!(balance(&env, &xlm_token, &user1), expected_rank1);
+    assert_eq!(balance(&env, &xlm_token, &user2), expected_rank2);
+
+    // Creator gets the dust (plus any refund from unallocated percentage).
+    assert_eq!(
+        balance(&env, &xlm_token, &creator),
+        creator_balance_before + expected_dust,
+    );
+
+    // Contract is empty — nothing stranded.
+    assert_eq!(balance(&env, &xlm_token, &contract_id), 0);
+
+    // Total outflows equal the full prize pool.
+    let total_paid = expected_rank1 + expected_rank2 + expected_dust;
+    assert_eq!(total_paid, prize_pool);
+}
+
 #[test]
 fn test_finalize_event_zero_prize_pool_noop() {
     let (env, client, contract_id, creator, ai_agent, xlm_token) = setup();

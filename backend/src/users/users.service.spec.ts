@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
@@ -269,10 +273,7 @@ describe('UsersService', () => {
       await expect(
         service.followUser(mockUser.id, mockUser.stellar_address),
       ).rejects.toThrow(BadRequestException);
-      expect(spy).toHaveBeenCalledWith(
-        mockUser.id,
-        mockUser.stellar_address,
-      );
+      expect(spy).toHaveBeenCalledWith(mockUser.id, mockUser.stellar_address);
     });
 
     it('should reject duplicate follow with ConflictException', async () => {
@@ -552,6 +553,55 @@ describe('UsersService', () => {
       await expect(service.getMyStats('missing-id')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('followUser', () => {
+    it('should throw BadRequestException if user tries to follow themselves', async () => {
+      jest
+        .spyOn(repository, 'findOneBy')
+        .mockImplementation(async (criteria: any) => {
+          if (criteria.id === mockUser.id) return mockUser;
+          if (criteria.stellar_address === mockUser.stellar_address)
+            return mockUser;
+          return null;
+        });
+
+      await expect(
+        service.followUser(mockUser.id, mockUser.stellar_address),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should succeed when following another user', async () => {
+      const mockUserB = {
+        ...mockUser,
+        id: 'user-uuid-2',
+        stellar_address: 'G_ANOTHER',
+      } as User;
+      jest
+        .spyOn(repository, 'findOneBy')
+        .mockImplementation(async (criteria: any) => {
+          if (criteria.id === mockUser.id) return mockUser;
+          if (criteria.stellar_address === mockUserB.stellar_address)
+            return mockUserB;
+          return null;
+        });
+
+      const followRepository = module.get<Repository<UserFollow>>(
+        getRepositoryToken(UserFollow),
+      );
+      jest.spyOn(followRepository, 'findOne').mockResolvedValue(null);
+      jest.spyOn(followRepository, 'save').mockResolvedValue({} as any);
+
+      const result = await service.followUser(
+        mockUser.id,
+        mockUserB.stellar_address,
+      );
+      expect(result.success).toBe(true);
+      expect(followRepository.save).toHaveBeenCalledWith({
+        follower_id: mockUser.id,
+        following_id: mockUserB.id,
+      });
     });
   });
 });

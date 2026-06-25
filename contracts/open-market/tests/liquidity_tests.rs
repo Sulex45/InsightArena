@@ -810,6 +810,63 @@ fn test_collect_lp_fees_fails_when_no_fees_earned() {
 }
 
 #[test]
+fn test_collect_lp_fees_clears_and_idempotent() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _oracle, xlm_token) = deploy_with_token(&env);
+
+    let creator = Address::generate(&env);
+    let provider = Address::generate(&env);
+    let trader = Address::generate(&env);
+
+    let sa = StellarAssetClient::new(&env, &xlm_token);
+    let token = TokenClient::new(&env, &xlm_token);
+
+    let market_id = client.create_market(&creator, &lp_market_params(&env));
+
+    // Add liquidity.
+    let liquidity = 100_000_i128;
+    sa.mint(&provider, &liquidity);
+    token.approve(&provider, &client.address, &liquidity, &9999);
+    client.add_liquidity(&provider, &market_id, &liquidity);
+
+    // Perform swaps to accumulate fees.
+    let swap_amount = 10_000_i128;
+    sa.mint(&trader, &swap_amount);
+    token.approve(&trader, &client.address, &swap_amount, &9999);
+    client.swap_outcome(
+        &trader,
+        &market_id,
+        &symbol_short!("yes"),
+        &symbol_short!("no"),
+        &swap_amount,
+        &0_i128,
+    );
+
+    // (a) fees_earned > 0 before collection.
+    let position_before = client.get_lp_position(&provider, &market_id);
+    let fees_before = position_before.fees_earned;
+    assert!(fees_before > 0);
+
+    let balance_before = token.balance(&provider);
+
+    // (b) Call collect_lp_fees; assert return value > 0.
+    let collected = client.collect_lp_fees(&provider, &market_id);
+    assert!(collected > 0);
+
+    // (c) Provider's balance increased by the collected amount.
+    assert_eq!(token.balance(&provider), balance_before + collected);
+
+    // (d) fees_earned == 0 in the stored LPPosition afterwards.
+    let position_after = client.get_lp_position(&provider, &market_id);
+    assert_eq!(position_after.fees_earned, 0);
+
+    // (e) Double-collect returns 0 (idempotent).
+    let result = client.try_collect_lp_fees(&provider, &market_id);
+    assert!(matches!(result, Err(Ok(InsightArenaError::InvalidInput))));
+}
+
+#[test]
 fn test_get_all_lp_providers_empty_before_any_liquidity() {
     let env = Env::default();
     env.mock_all_auths();
