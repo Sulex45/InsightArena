@@ -16,6 +16,7 @@ import { MarketAnalyticsDto } from './dto/market-analytics.dto';
 import { MarketHistoryResponseDto } from './dto/market-history.dto';
 import { UserTrendsDto } from './dto/user-trends.dto';
 import { CategoryAnalyticsResponseDto } from './dto/category-analytics.dto';
+import { PlatformStatsDto } from './dto/platform-stats.dto';
 
 @ApiTags('Analytics')
 @Controller('analytics')
@@ -125,5 +126,20 @@ export class AnalyticsController {
   })
   async getCategoryAnalytics(): Promise<CategoryAnalyticsResponseDto> {
     return this.analyticsService.getCategoryAnalytics();
+  }
+
+  @Get('platform')
+  @Public()
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60)
+  @ApiOperation({ summary: 'Get platform-wide public statistics' })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Platform statistics: total markets, predictions, volume, active users, and active markets',
+    type: PlatformStatsDto,
+  })
+  async getPlatformStats(): Promise<PlatformStatsDto> {
+    return this.analyticsService.getPlatformStats();
   }
 }

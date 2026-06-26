@@ -22,6 +22,7 @@ import {
   CategoryStatsDto,
   CategoryAnalyticsResponseDto,
 } from './dto/category-analytics.dto';
+import { PlatformStatsDto } from './dto/platform-stats.dto';
 
 /** Tier thresholds: Bronze < 200, Silver < 500, Gold < 1000, Platinum ≥ 1000 */
 export function predictorTierFromReputation(reputationScore: number): string {
@@ -517,5 +518,32 @@ export class AnalyticsService {
     if (total === 0) return false;
     const activeRatio = active / total;
     return activeRatio > 0.5;
+  }
+
+  async getPlatformStats(): Promise<PlatformStatsDto> {
+    const [total_markets, total_predictions, active_markets, active_users] =
+      await Promise.all([
+        this.marketsRepository.count(),
+        this.predictionsRepository.count(),
+        this.marketsRepository.count({
+          where: { is_resolved: false, is_cancelled: false },
+        }),
+        this.usersRepository.count(),
+      ]);
+
+    const volumeResult = await this.marketsRepository
+      .createQueryBuilder('market')
+      .select('SUM(CAST(market.total_pool_stroops AS BIGINT))', 'total')
+      .getRawOne<{ total: string | null }>();
+
+    const total_volume_stroops = volumeResult?.total ?? '0';
+
+    return {
+      total_markets,
+      total_predictions,
+      total_volume_stroops,
+      active_users,
+      active_markets,
+    };
   }
 }

@@ -608,43 +608,26 @@ export class MarketsService {
   }
 
   /**
-   * Get all comments for a market, including nested replies
+   * Get paginated comments for a market
    */
-  async getComments(marketId: string): Promise<Comment[]> {
+  async getComments(
+    marketId: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{ data: Comment[]; total: number; page: number; limit: number }> {
     const market = await this.findByIdOrOnChainId(marketId);
+    const take = Math.min(limit, 50);
+    const skip = (page - 1) * take;
 
-    // Fetch all comments for this market
-    const comments = await this.commentsRepository.find({
+    const [data, total] = await this.commentsRepository.findAndCount({
       where: { market: { id: market.id } },
       relations: ['author', 'parent'],
       order: { created_at: 'ASC' },
+      skip,
+      take,
     });
 
-    // Build nested structure
-    const commentMap = new Map<string, Comment & { replies: Comment[] }>();
-    const roots: Comment[] = [];
-
-    comments.forEach((c) => {
-      const commentWithReplies = { ...c, replies: [] };
-      commentMap.set(c.id, commentWithReplies);
-    });
-
-    comments.forEach((c) => {
-      const commentWithReplies = commentMap.get(c.id)!;
-      if (c.parent) {
-        const parent = commentMap.get(c.parent.id);
-        if (parent) {
-          parent.replies.push(commentWithReplies);
-        } else {
-          // Parent might not be in this market, which shouldn't happen
-          roots.push(commentWithReplies);
-        }
-      } else {
-        roots.push(commentWithReplies);
-      }
-    });
-
-    return roots;
+    return { data, total, page, limit: take };
   }
 
   /**

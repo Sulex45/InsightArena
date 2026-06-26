@@ -172,7 +172,7 @@ describe('NotificationsService', () => {
   });
 
   describe('markAsRead', () => {
-    it('should update notification read to true', async () => {
+    it('should update notification read to true and broadcast when owner matches', async () => {
       mockRepository.update.mockResolvedValue({ affected: 1 });
 
       await service.markAsRead(1, 'GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3XNRBF7XN');
@@ -184,6 +184,18 @@ describe('NotificationsService', () => {
       expect(
         mockNotificationBroadcaster.broadcastNotificationRead,
       ).toHaveBeenCalledWith('GBRPYHIL2CI3WHZDTOOQFC6EB4RRJC3XNRBF7XN', 1);
+    });
+
+    it('should throw NotFoundException when notification belongs to a different user', async () => {
+      mockRepository.update.mockResolvedValue({ affected: 0 });
+
+      await expect(
+        service.markAsRead(1, 'GDIFFERENTADDRESS'),
+      ).rejects.toThrow(NotFoundException);
+
+      expect(
+        mockNotificationBroadcaster.broadcastNotificationRead,
+      ).not.toHaveBeenCalled();
     });
   });
 

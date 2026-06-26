@@ -81,10 +81,14 @@ export class NotificationsService {
   }
 
   async markAsRead(id: number, userAddress: string): Promise<void> {
-    await this.notificationsRepository.update(
+    const result = await this.notificationsRepository.update(
       { id, user_address: userAddress },
       { read: true },
     );
+
+    if (!result.affected) {
+      throw new NotFoundException('Notification not found');
+    }
 
     // Broadcast read status via WebSocket
     this.notificationBroadcaster.broadcastNotificationRead(userAddress, id);

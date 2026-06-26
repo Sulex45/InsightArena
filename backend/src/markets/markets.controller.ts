@@ -26,6 +26,7 @@ import { BulkCreateMarketsDto } from './dto/bulk-create-markets.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CreateDisputeDto } from '../disputes/dto/create-dispute.dto';
 import { CreateMarketDto } from './dto/create-market.dto';
+import { ListCommentsDto } from './dto/list-comments.dto';
 import { UpdateMarketDto } from './dto/update-market.dto';
 import {
   ListMarketsDto,
@@ -248,15 +249,17 @@ export class MarketsController {
 
   @Get(':id/comments')
   @Public()
-  @ApiOperation({ summary: 'Get comments for a market' })
+  @ApiOperation({ summary: 'Get comments for a market (paginated)' })
   @ApiResponse({
     status: 200,
-    description: 'List of comments (nested structure)',
-    type: [Comment],
+    description: 'Paginated list of comments',
   })
   @ApiResponse({ status: 404, description: 'Market not found' })
-  async getComments(@Param('id') id: string): Promise<Comment[]> {
-    return this.marketsService.getComments(id);
+  async getComments(
+    @Param('id') id: string,
+    @Query() query: ListCommentsDto,
+  ): Promise<{ data: Comment[]; total: number; page: number; limit: number }> {
+    return this.marketsService.getComments(id, query.page, query.limit);
   }
 
   @Get(':id/report')
