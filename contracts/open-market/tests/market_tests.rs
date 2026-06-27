@@ -835,3 +835,47 @@ fn cancel_market_refunds_all_predictors() {
     assert_eq!(token_client.balance(&predictor_b), stake_b);
     assert!(client.get_market(&id).is_cancelled);
 }
+
+#[test]
+fn test_close_market_by_creator_after_end_time() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _oracle, _) = deploy_with_token(&env);
+    let creator = Address::generate(&env);
+
+    let id = client.create_market(&creator, &default_params(&env));
+    env.ledger().set_timestamp(env.ledger().timestamp() + 1001);
+
+    client.close_market(&creator, &id);
+    assert!(client.get_market(&id).is_closed);
+}
+
+#[test]
+fn test_close_market_by_admin_on_third_party_market() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, admin, _oracle, _) = deploy_with_token(&env);
+    let creator = Address::generate(&env);
+
+    let id = client.create_market(&creator, &default_params(&env));
+    env.ledger().set_timestamp(env.ledger().timestamp() + 1001);
+
+    // Admin closes a market they didn't create
+    client.close_market(&admin, &id);
+    assert!(client.get_market(&id).is_closed);
+}
+
+#[test]
+fn test_close_market_rejects_third_party() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (client, _admin, _oracle, _) = deploy_with_token(&env);
+    let creator = Address::generate(&env);
+    let random = Address::generate(&env);
+
+    let id = client.create_market(&creator, &default_params(&env));
+    env.ledger().set_timestamp(env.ledger().timestamp() + 1001);
+
+    let result = client.try_close_market(&random, &id);
+    assert!(matches!(result, Err(Ok(InsightArenaError::Unauthorized))));
+}
