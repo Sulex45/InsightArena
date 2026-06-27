@@ -109,4 +109,61 @@ describe('AchievementsService', () => {
     expect(result).toHaveLength(1);
     expect(result[0].is_unlocked).toBe(true);
   });
+
+  describe('accuracy achievement boundary tests', () => {
+    const makeUser = (correct: number, total: number) =>
+      ({
+        id: 'user-1',
+        stellar_address: 'GABC123',
+        total_predictions: total,
+        correct_predictions: correct,
+        total_staked_stroops: '0',
+        reputation_score: 0,
+      }) as User;
+
+    beforeEach(() => {
+      achievementsRepository.findOne.mockImplementation((options: any) => {
+        const type = options?.where?.type;
+        return Promise.resolve({ id: `ach-${type}`, type } as Achievement);
+      });
+      userAchievementsRepository.findOne.mockResolvedValue(null);
+      userAchievementsRepository.save.mockClear();
+    });
+
+    const savedTypes = () =>
+      userAchievementsRepository.save.mock.calls.map(
+        (call) => (call[0] as any).achievement.type,
+      );
+
+    it('should NOT unlock ACCURACY_75 at 74% accuracy (below boundary)', async () => {
+      usersRepository.findOne.mockResolvedValue(makeUser(74, 100));
+      await service.checkAndUnlockAchievements(makeUser(74, 100));
+      expect(savedTypes()).not.toContain(AchievementType.ACCURACY_75);
+    });
+
+    it('should unlock ACCURACY_75 at exactly 75% accuracy', async () => {
+      usersRepository.findOne.mockResolvedValue(makeUser(75, 100));
+      await service.checkAndUnlockAchievements(makeUser(75, 100));
+      expect(savedTypes()).toContain(AchievementType.ACCURACY_75);
+    });
+
+    it('should NOT unlock ACCURACY_90 at 89% accuracy (below boundary)', async () => {
+      usersRepository.findOne.mockResolvedValue(makeUser(89, 100));
+      await service.checkAndUnlockAchievements(makeUser(89, 100));
+      expect(savedTypes()).not.toContain(AchievementType.ACCURACY_90);
+    });
+
+    it('should unlock ACCURACY_90 at exactly 90% accuracy', async () => {
+      usersRepository.findOne.mockResolvedValue(makeUser(90, 100));
+      await service.checkAndUnlockAchievements(makeUser(90, 100));
+      expect(savedTypes()).toContain(AchievementType.ACCURACY_90);
+    });
+
+    it('should NOT unlock any accuracy achievement when total_predictions is 0', async () => {
+      usersRepository.findOne.mockResolvedValue(makeUser(0, 0));
+      await service.checkAndUnlockAchievements(makeUser(0, 0));
+      expect(savedTypes()).not.toContain(AchievementType.ACCURACY_75);
+      expect(savedTypes()).not.toContain(AchievementType.ACCURACY_90);
+    });
+  });
 });
