@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/component/ui/button";
 
+export type PointsMultiplier = 1 | 2 | 3;
+
 export interface MatchFormData {
   teamA: string;
   teamB: string;
   matchTime: string;
+  multiplier?: PointsMultiplier;
 }
 
 interface AddMatchFormProps {
@@ -15,6 +18,7 @@ interface AddMatchFormProps {
 }
 
 const MAX_TEAM_NAME = 100;
+const MULTIPLIER_OPTIONS: PointsMultiplier[] = [1, 2, 3];
 
 function nowPlusOneHour(): string {
   const d = new Date(Date.now() + 3600 * 1000);
@@ -25,6 +29,7 @@ export default function AddMatchForm({ onAddMatch }: AddMatchFormProps) {
   const [teamA, setTeamA] = useState("");
   const [teamB, setTeamB] = useState("");
   const [matchTime, setMatchTime] = useState(nowPlusOneHour());
+  const [multiplier, setMultiplier] = useState<PointsMultiplier>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<MatchFormData & { form: string }>>({});
 
@@ -64,10 +69,12 @@ export default function AddMatchForm({ onAddMatch }: AddMatchFormProps) {
         teamA: teamA.trim(),
         teamB: teamB.trim(),
         matchTime,
+        multiplier,
       });
       setTeamA("");
       setTeamB("");
       setMatchTime(nowPlusOneHour());
+      setMultiplier(1);
       setErrors({});
     } catch {
       setErrors({ form: "Failed to add match. Please try again." });
@@ -151,6 +158,29 @@ export default function AddMatchForm({ onAddMatch }: AddMatchFormProps) {
         {errors.matchTime && (
           <p className="text-xs text-rose-400">{errors.matchTime}</p>
         )}
+      </div>
+
+      <div className="space-y-1">
+        <span className="block text-sm font-medium text-slate-300">
+          Points Multiplier
+        </span>
+        <div className="flex gap-2">
+          {MULTIPLIER_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={multiplier === option}
+              onClick={() => setMultiplier(option)}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                multiplier === option
+                  ? "bg-amber-400 text-slate-950"
+                  : "border border-white/10 bg-slate-950/90 text-slate-300 hover:border-amber-400/40"
+              }`}
+            >
+              {option}x
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="flex justify-end pt-1">

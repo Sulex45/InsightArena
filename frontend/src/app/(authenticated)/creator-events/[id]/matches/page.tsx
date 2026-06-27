@@ -29,6 +29,7 @@ interface Match {
   status: MatchStatus;
   hasPredictions: boolean;
   result?: string;
+  multiplier: number;
 }
 
 interface EventMeta {
@@ -53,6 +54,7 @@ const MOCK_MATCHES: Match[] = [
     matchTime: new Date(Date.now() + 86400 * 1000).toISOString(),
     status: "upcoming",
     hasPredictions: false,
+    multiplier: 1,
   },
   {
     id: "match-002",
@@ -61,6 +63,7 @@ const MOCK_MATCHES: Match[] = [
     matchTime: new Date(Date.now() - 3600 * 1000).toISOString(),
     status: "started",
     hasPredictions: true,
+    multiplier: 2,
   },
   {
     id: "match-003",
@@ -70,6 +73,7 @@ const MOCK_MATCHES: Match[] = [
     status: "resolved",
     hasPredictions: true,
     result: "Team Sigma",
+    multiplier: 1,
   },
 ];
 
@@ -150,6 +154,7 @@ export default function MatchManagementPage() {
       matchTime: data.matchTime,
       status: "upcoming",
       hasPredictions: false,
+      multiplier: data.multiplier ?? 1,
     };
     setMatches((prev) => [...prev, newMatch]);
   }
@@ -162,6 +167,7 @@ export default function MatchManagementPage() {
       matchTime: m.matchTime,
       status: "upcoming",
       hasPredictions: false,
+      multiplier: m.multiplier ?? 1,
     }));
     setMatches((prev) => [...prev, ...newMatches]);
   }
@@ -233,6 +239,11 @@ export default function MatchManagementPage() {
                     <div className="space-y-2">
                       <div className="flex items-center gap-3">
                         {statusBadge(match.status)}
+                        {match.multiplier > 1 && (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2.5 py-1 text-xs font-semibold text-amber-300">
+                            ⚡ {match.multiplier}x Points
+                          </span>
+                        )}
                         {match.result && (
                           <span className="text-xs text-slate-400">
                             Winner: {match.result}

@@ -65,6 +65,14 @@ export default function MatchList({ matches, userJoined, onPredict }: MatchListP
                   >
                     {match.outcome === "Pending" ? "Pending" : "Completed"}
                   </Badge>
+                  {(match.pointsMultiplier === 2 || match.pointsMultiplier === 3) && (
+                    <Badge
+                      variant="outline"
+                      className="rounded-full border-amber-400/30 bg-amber-400/10 px-3 py-1 text-amber-200"
+                    >
+                      ⚡ {match.pointsMultiplier}x Points
+                    </Badge>
+                  )}
                   <span className="flex items-center gap-2 text-xs text-slate-400">
                     <CalendarClock className="h-4 w-4" />
                     {new Date(match.matchTime).toLocaleString()}
