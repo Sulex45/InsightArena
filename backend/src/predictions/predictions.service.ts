@@ -58,12 +58,16 @@ export class PredictionsService {
     if (
       market.is_resolved ||
       market.is_cancelled ||
+      market.is_paused ||
       new Date() > market.end_time
     ) {
       throw new BadRequestException(
-        'Market is closed - predictions are no longer accepted',
+        market.is_paused
+          ? 'Market is paused - predictions are no longer accepted'
+          : 'Market is closed - predictions are no longer accepted',
       );
     }
+
 
     if (!market.outcome_options.includes(dto.chosen_outcome)) {
       throw new BadRequestException(

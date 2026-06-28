@@ -217,6 +217,7 @@ export class MarketsController {
   @Delete(':id')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Cancel a prediction market (creator or admin)' })
+
   @ApiResponse({ status: 200, description: 'Market cancelled', type: Market })
   @ApiResponse({
     status: 400,
@@ -231,6 +232,38 @@ export class MarketsController {
   ): Promise<Market> {
     return this.marketsService.cancelMarket(id, user);
   }
+
+  @Post(':id/pause')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pause a prediction market (admin only)' })
+  @ApiResponse({ status: 200, description: 'Market paused', type: Market })
+  @ApiResponse({ status: 400, description: 'Market cannot be paused' })
+  @ApiResponse({ status: 403, description: 'Caller is not admin' })
+  @ApiResponse({ status: 404, description: 'Market not found' })
+  @ApiResponse({ status: 502, description: 'Soroban contract call failed' })
+  async pauseMarket(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<Market> {
+    return this.marketsService.pauseMarket(id, user);
+  }
+
+  @Post(':id/resume')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Resume a prediction market (admin only)' })
+  @ApiResponse({ status: 200, description: 'Market resumed', type: Market })
+  @ApiResponse({ status: 400, description: 'Market cannot be resumed' })
+  @ApiResponse({ status: 403, description: 'Caller is not admin' })
+  @ApiResponse({ status: 404, description: 'Market not found' })
+  @ApiResponse({ status: 502, description: 'Soroban contract call failed' })
+  async resumeMarket(
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+  ): Promise<Market> {
+    return this.marketsService.resumeMarket(id, user);
+  }
+
+
 
   @Post(':id/comments')
   @UseGuards(BanGuard)

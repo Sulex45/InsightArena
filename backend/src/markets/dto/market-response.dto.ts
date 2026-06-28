@@ -43,7 +43,12 @@ export class MarketResponseDto {
   is_cancelled: boolean;
 
   @Expose()
+  is_paused: boolean;
+
+
+  @Expose()
   total_pool_stroops: string;
+
 
   @Expose()
   participant_count: number;

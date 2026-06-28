@@ -533,6 +533,8 @@ export class MarketsService {
   async cancelMarket(id: string, user: User): Promise<Market> {
     const market = await this.findByIdOrOnChainId(id);
 
+
+
     const isAdmin = user.role === 'admin';
     const isCreator = market.creator.id === user.id;
     if (!isAdmin && !isCreator) {
@@ -745,10 +747,78 @@ export class MarketsService {
     return await this.userBookmarksRepository.save(bookmark);
   }
 
+  async pauseMarket(id: string, user: User): Promise<Market> {
+    const market = await this.findByIdOrOnChainId(id);
+
+    if (user.role !== 'admin') {
+      throw new ForbiddenException('Only admin can pause markets');
+    }
+
+    if (market.is_resolved) {
+      throw new BadRequestException('Resolved markets cannot be paused');
+    }
+
+    if (market.is_cancelled) {
+      throw new BadRequestException('Cancelled markets cannot be paused');
+    }
+
+    if (market.is_paused) {
+      throw new ConflictException('Market is already paused');
+    }
+
+    try {
+      await this.sorobanService.pauseMarket(market.on_chain_market_id);
+    } catch (err) {
+      this.logger.error('Soroban pauseMarket failed', err);
+      throw new BadGatewayException('Failed to pause market on Soroban');
+    }
+
+    market.is_paused = true;
+    return await this.marketsRepository.save(market);
+  }
+
+  async resumeMarket(id: string, user: User): Promise<Market> {
+    const market = await this.findByIdOrOnChainId(id);
+
+
+    if (user.role !== 'admin') {
+      throw new ForbiddenException('Only admin can resume markets');
+    }
+
+    if (market.is_resolved) {
+      throw new BadRequestException('Resolved markets cannot be resumed');
+    }
+
+    if (market.is_cancelled) {
+      throw new BadRequestException('Cancelled markets cannot be resumed');
+    }
+
+    if (!market.is_paused) {
+      throw new ConflictException('Market is not paused');
+    }
+
+    // Optional: don't allow resuming after end_time has passed
+    if (new Date() > market.end_time) {
+      throw new BadRequestException('Cannot resume market after end_time has passed');
+    }
+
+    try {
+      await this.sorobanService.resumeMarket(market.on_chain_market_id);
+    } catch (err) {
+      this.logger.error('Soroban resumeMarket failed', err);
+      throw new BadGatewayException('Failed to resume market on Soroban');
+    }
+
+    market.is_paused = false;
+    return await this.marketsRepository.save(market);
+  }
+
   async removeBookmark(marketId: string, user: User): Promise<void> {
     const market = await this.findByIdOrOnChainId(marketId);
 
+
     await this.userBookmarksRepository.delete({
+
       user: { id: user.id },
       market: { id: market.id },
     });
